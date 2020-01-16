@@ -8,8 +8,11 @@ import {
 import {
     MtlObjBridge
 } from "../node_modules/three/examples/jsm/loaders/obj2/bridge/MtlObjBridge.js"
+import {
+    MapControls
+} from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-let camera, scene, renderer;
+let camera, controls, scene, renderer;
 let uniforms;
 let mesh;
 let vertex_shader;
@@ -41,7 +44,23 @@ function init() {
     camera = new THREE.PerspectiveCamera(
         75, window.innerWidth / window.innerHeight, 0.1, 1000
     );
-    camera.position.z = 12;
+
+    let canvas = document.createElement('canvas');
+    let context = canvas.getContext('webgl2', {
+        alpha: false
+    });
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        context: context
+    });
+
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    controls = new MapControls(camera, renderer.domElement);
+    controls.screenSpacePanning = true;
+    controls.update();
+    camera.position.z = 10;
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xbbbbbb);
@@ -62,7 +81,7 @@ function init() {
             obj.translateY(-8.0);
         })
         .catch(error => {
-            console.error(error);
+            console.error("Error in object loading: ", error);
         });
 
     mtl_promise
@@ -71,17 +90,17 @@ function init() {
                 MtlObjBridge.addMaterialsFromMtlLoader(mtl, true));
         })
         .catch(error => {
-            console.error(error);
+            console.error("Error in material loading: ", error);
         });
 
     // LIGHTS
     let ambient_light = new THREE.AmbientLight(0xffffff);
     scene.add(ambient_light);
-    // var directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    //scene.add(directionalLight);
-    // var pointLight = new THREE.PointLight( 0xffffff, 1, 100 );
-    // pointLight.position.set( 5, 5, 10 );
-    //scene.add( pointLight );
+    let directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
+    scene.add(directional_light);
+    let point_light = new THREE.PointLight(0xcccccc, 1, 100);
+    point_light.position.set(5, 5, 20);
+    scene.add(point_light);
 
     uniforms = {
         u_time: {
@@ -107,18 +126,6 @@ function init() {
     // mesh = new THREE.Mesh(geometry, material);
     // scene.add(mesh);
 
-    let canvas = document.createElement('canvas');
-    let context = canvas.getContext('webgl2', {
-        alpha: false
-    });
-    renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        context: context
-    });
-
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
-
     onWindowResize();
     window.addEventListener('resize', onWindowResize, false);
 
@@ -139,6 +146,7 @@ function onWindowResize(event) {
 
 function animate() {
     requestAnimationFrame(animate);
+    controls.update();
     render();
 }
 
