@@ -43,54 +43,33 @@ function init() {
 
     let container = document.querySelector("#container");
 
+    // Setup Camera
     camera = new THREE.PerspectiveCamera(
         75, window.innerWidth / window.innerHeight, 0.1, 1000
     );
-
-    let canvas = document.createElement('canvas');
-    let context = canvas.getContext('webgl2', {
-        alpha: false
-    });
-    renderer = new THREE.WebGLRenderer({
-        canvas: canvas,
-        context: context,
-    });
-
-    renderer.setPixelRatio(window.devicePixelRatio);
-    container.appendChild(renderer.domElement);
-
-    composer = new EffectComposer(renderer);
-    composer.setSize(window.innerWidth, window.innerHeight);
-
-    controls = new MapControls(camera, renderer.domElement);
-    controls.screenSpacePanning = true;
-    controls.update();
     camera.position.z = 15;
 
+    // Setup Scene
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xbbbbbb);
 
-    let render_pass = new RenderPass(scene, camera);
-    composer.addPass(render_pass);
-
-    fxaa_pass = new ShaderPass(FXAAShader)
-    composer.addPass(fxaa_pass);
-
-    let copy_pass = new ShaderPass(BaseCustomShader);
-    composer.addPass(copy_pass);
-
-
+    // Start async file loading as soon as possible.
     let mtl_loader = new MTLLoader();
     let obj_loader = new OBJLoader2();
 
-    let mtl_promise = new Promise((resolve, reject) => {
-        mtl_loader.load("../resources/models/nanosuit/nanosuit.mtl", resolve);
-    });
-    let obj_promise = new Promise((resolve, reject) => {
-        obj_loader.load("../resources/models/nanosuit/nanosuit.obj", resolve);
+    const models_dir = "../resources/models/nanosuit";
+    const loaders = [mtl_loader, obj_loader];
+    const files = ["nanosuit.mtl", "nanosuit.obj"]
+
+    let promises = {};
+    files.forEach((file, i) => {
+        // Start loading and save promises
+        promises[file] = new Promise((resolve, reject) => {
+            loaders[i].load(models_dir + "/" + file, resolve);
+        });
     });
 
-    obj_promise
+    promises["nanosuit.obj"]
         .then(obj => {
             scene.add(obj);
             obj.translateY(-8.0);
@@ -99,7 +78,7 @@ function init() {
             console.error("Error in object loading: ", error);
         });
 
-    mtl_promise
+    promises["nanosuit.mtl"]
         .then(mtl => {
             obj_loader.addMaterials(
                 MtlObjBridge.addMaterialsFromMtlLoader(mtl, true));
@@ -108,7 +87,31 @@ function init() {
             console.error("Error in material loading: ", error);
         });
 
-    // LIGHTS
+
+    // Setup renderer
+    let canvas = document.createElement('canvas');
+    let context = canvas.getContext('webgl2', {
+        alpha: false
+    });
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        context: context,
+    });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    // Setup passes for postprocessing and composer
+    let render_pass = new RenderPass(scene, camera);
+    fxaa_pass = new ShaderPass(FXAAShader)
+    let copy_pass = new ShaderPass(BaseCustomShader);
+
+    composer = new EffectComposer(renderer);
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(render_pass);
+    composer.addPass(fxaa_pass);
+    composer.addPass(copy_pass);
+
+    // Setup lights
     let ambient_light = new THREE.AmbientLight(0xffffff);
     scene.add(ambient_light);
     let directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
@@ -117,22 +120,30 @@ function init() {
     point_light.position.set(5, 5, 20);
     scene.add(point_light);
 
+    // Setup controls
+    controls = new MapControls(camera, renderer.domElement);
+    controls.screenSpacePanning = true;
+    controls.update();
+
+    // Handle window resize events
     onWindowResize();
     window.addEventListener('resize', onWindowResize, false);
 }
 
 function onWindowResize(event) {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    composer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(width, height);
+    composer.setSize(width, height);
 
     let pixel_ratio = renderer.getPixelRatio();
     let uniforms = fxaa_pass.material.uniforms;
 
-    uniforms['resolution'].value.x = 1 / (window.innerWidth * pixel_ratio);
-    uniforms['resolution'].value.y = 1 / (window.innerHeight * pixel_ratio);
+    uniforms['resolution'].value.x = 1 / (width * pixel_ratio);
+    uniforms['resolution'].value.y = 1 / (height * pixel_ratio);
 }
 
 function animate() {
@@ -142,6 +153,5 @@ function animate() {
 }
 
 function render() {
-    // uniforms.u_time.value += 0.05;
     composer.render();
 }
