@@ -12,34 +12,36 @@ import {
     MapControls
 } from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-let camera, controls, scene, renderer;
+import {
+    EffectComposer
+} from '../node_modules/three/examples/jsm/postprocessing/EffectComposer.js';
+import {
+    RenderPass
+} from '../node_modules/three/examples/jsm/postprocessing/RenderPass.js';
+import {
+    ShaderPass
+} from '../node_modules/three/examples/jsm/postprocessing/ShaderPass.js';
+
+import {
+    FXAAShader
+} from '../node_modules/three/examples/jsm/shaders/FXAAShader.js';
+import {
+    BaseCustomShader
+} from './BaseCustomShader.js';
+
+let camera, controls, scene, renderer, composer;
 let uniforms;
 let mesh;
 let vertex_shader;
 let fragment_shader;
+let fxaa_pass;
 
-const shader_dir = "./shaders"
-const vertex_shader_file = shader_dir + "/" + "shader.vert";
-const fragment_shader_file = shader_dir + "/" + "shader.frag";
-const shader_files = [vertex_shader_file, fragment_shader_file];
-const shader_promises = shader_files.map((shader_file) => load_shader(shader_file));
-
-Promise.all(shader_promises).then((shaders) => {
-    vertex_shader = shaders[0];
-    fragment_shader = shaders[1];
-    init();
-    animate();
-});
-
-function load_shader(url) {
-    return new Promise((resolve, reject) => {
-        new THREE.FileLoader().load(url, resolve);
-    });
-}
+init();
+animate();
 
 function init() {
 
-    let container = document.getElementById('container');
+    let container = document.querySelector("#container");
 
     camera = new THREE.PerspectiveCamera(
         75, window.innerWidth / window.innerHeight, 0.1, 1000
@@ -51,19 +53,32 @@ function init() {
     });
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
-        context: context
+        context: context,
     });
 
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
+    composer = new EffectComposer(renderer);
+    composer.setSize(window.innerWidth, window.innerHeight);
+
     controls = new MapControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
     controls.update();
-    camera.position.z = 10;
+    camera.position.z = 15;
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xbbbbbb);
+
+    let render_pass = new RenderPass(scene, camera);
+    composer.addPass(render_pass);
+
+    fxaa_pass = new ShaderPass(FXAAShader)
+    composer.addPass(fxaa_pass);
+
+    let copy_pass = new ShaderPass(BaseCustomShader);
+    composer.addPass(copy_pass);
+
 
     let mtl_loader = new MTLLoader();
     let obj_loader = new OBJLoader2();
@@ -102,37 +117,8 @@ function init() {
     point_light.position.set(5, 5, 20);
     scene.add(point_light);
 
-    uniforms = {
-        u_time: {
-            type: "f",
-            value: 1.0
-        },
-        u_resolution: {
-            type: "v2",
-            value: new THREE.Vector2()
-        },
-        u_mouse: {
-            type: "v2",
-            value: new THREE.Vector2()
-        }
-    };
-
-    // let geometry = new THREE.PlaneBufferGeometry(1, 1);
-    // let material = new THREE.RawShaderMaterial({
-    //     uniforms: uniforms,
-    //     vertexShader: vertex_shader.trim(),
-    //     fragmentShader: fragment_shader.trim()
-    // });
-    // mesh = new THREE.Mesh(geometry, material);
-    // scene.add(mesh);
-
     onWindowResize();
     window.addEventListener('resize', onWindowResize, false);
-
-    document.onmousemove = function(e) {
-        uniforms.u_mouse.value.x = e.pageX
-        uniforms.u_mouse.value.y = e.pageY
-    }
 }
 
 function onWindowResize(event) {
@@ -140,8 +126,13 @@ function onWindowResize(event) {
     camera.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    uniforms.u_resolution.value.x = renderer.domElement.width;
-    uniforms.u_resolution.value.y = renderer.domElement.height;
+    composer.setSize(window.innerWidth, window.innerHeight);
+
+    let pixel_ratio = renderer.getPixelRatio();
+    let uniforms = fxaa_pass.material.uniforms;
+
+    uniforms['resolution'].value.x = 1 / (window.innerWidth * pixel_ratio);
+    uniforms['resolution'].value.y = 1 / (window.innerHeight * pixel_ratio);
 }
 
 function animate() {
@@ -151,6 +142,6 @@ function animate() {
 }
 
 function render() {
-    uniforms.u_time.value += 0.05;
-    renderer.render(scene, camera);
+    // uniforms.u_time.value += 0.05;
+    composer.render();
 }
