@@ -26,8 +26,10 @@ import {
     FXAAShader
 } from '../node_modules/three/examples/jsm/shaders/FXAAShader.js';
 import {
-    BaseCustomShader
-} from './BaseCustomShader.js';
+    SSAOPass
+} from './SSAOPass.js';
+import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
+
 
 let camera, controls, scene, renderer, composer;
 let uniforms;
@@ -48,6 +50,9 @@ function init() {
         75, window.innerWidth / window.innerHeight, 0.1, 1000
     );
     camera.position.z = 15;
+    camera.near = 1;
+    camera.far = 30;
+    console.warn("Camera:", "(", camera.near, ",", camera.far, ")");
 
     // Setup Scene
     scene = new THREE.Scene();
@@ -102,14 +107,16 @@ function init() {
 
     // Setup passes for postprocessing and composer
     let render_pass = new RenderPass(scene, camera);
-    fxaa_pass = new ShaderPass(FXAAShader)
-    let copy_pass = new ShaderPass(BaseCustomShader);
+    fxaa_pass = new ShaderPass(FXAAShader);
+    let ssao_pass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+    let copy_pass = new ShaderPass(CopyShader);
 
     composer = new EffectComposer(renderer);
     composer.setSize(window.innerWidth, window.innerHeight);
-    composer.addPass(render_pass);
+    // composer.addPass(render_pass);
+    composer.addPass(ssao_pass);
     composer.addPass(fxaa_pass);
-    composer.addPass(copy_pass);
+    // composer.addPass(copy_pass);
 
     // Setup lights
     let ambient_light = new THREE.AmbientLight(0xffffff);
@@ -119,6 +126,8 @@ function init() {
     let point_light = new THREE.PointLight(0xcccccc, 1, 100);
     point_light.position.set(5, 5, 20);
     scene.add(point_light);
+    let light = new THREE.HemisphereLight();
+    scene.add(light);
 
     // Setup controls
     controls = new MapControls(camera, renderer.domElement);
