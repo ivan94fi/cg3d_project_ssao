@@ -13,6 +13,15 @@ var SSAOPass = function(scene, camera, width, height) {
     this.width = width;
     this.height = height;
 
+    this.kernel_size = 32;
+    this.sample_kernel = [];
+    this.noise_texture_width = 4;
+    this.noise_texture_height = 4;
+    this.noise_texture = null;
+
+    this.generate_sample_kernel();
+    this.generate_noise_texture();
+
     let depth_texture = new THREE.DepthTexture();
     depth_texture.type = THREE.UnsignedShortType;
     depth_texture.minFilter = THREE.NearestFilter;
@@ -43,22 +52,17 @@ var SSAOPass = function(scene, camera, width, height) {
 
     this.ssao_material.uniforms['t_diffuse'].value = this.beauty_render_target.texture;
     this.ssao_material.uniforms['t_depth'].value = this.beauty_render_target.depthTexture;
+    this.ssao_material.uniforms['t_noise'].value = this.noise_texture;
+    this.ssao_material.uniforms['sample_kernel'].value = this.sample_kernel;
     this.ssao_material.uniforms['resolution'].value.set(this.width, this.height);
     this.ssao_material.uniforms['texel_size'].value.set(1 / this.width, 1 / this.height);
     this.ssao_material.uniforms['camera_near'].value = this.camera.near;
     this.ssao_material.uniforms['camera_far'].value = this.camera.far;
-
-    // this.depthRenderMaterial = new ShaderMaterial({
-    //     defines: Object.assign({}, SSAODepthShader.defines),
-    //     uniforms: UniformsUtils.clone(SSAODepthShader.uniforms),
-    //     vertexShader: SSAODepthShader.vertexShader,
-    //     fragmentShader: SSAODepthShader.fragmentShader,
-    //     blending: NoBlending
-    // });
-    // this.depthRenderMaterial.uniforms['tDepth'].value = this.beautyRenderTarget.depthTexture;
-    // this.depthRenderMaterial.uniforms['cameraNear'].value = this.camera.near;
-    // this.depthRenderMaterial.uniforms['cameraFar'].value = this.camera.far;
-
+    this.ssao_material.uniforms['noise_scale'].value.set(
+        // TODO: maybe this should be computed at runtime in the shader.
+        this.width / this.noise_texture_width,
+        this.height / this.noise_texture_height
+    );
 
     this.copy_material = new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.clone(CopyShader.uniforms),
@@ -126,6 +130,48 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         renderer.setClearColor(this.original_clear_color);
         renderer.setClearAlpha(original_clear_alpha);
 
+    },
+
+    generate_sample_kernel: function() {
+        for (let i = 0; i < this.kernel_size; i++) {
+            let sample = new THREE.Vector3(
+                (Math.random() * 2) - 1,
+                (Math.random() * 2) - 1,
+                Math.random()
+            );
+            sample.normalize();
+
+            let scale = i / this.kernel_size;
+            scale = THREE.Math.lerp(0.1, 1.0, scale * scale);
+            sample.multiplyScalar(scale);
+            this.sample_kernel.push(sample);
+        }
+    },
+
+    generate_noise_texture: function() {
+        const noise_texture_size = this.noise_texture_width * this.noise_texture_height;
+        const stride = 4;
+        let data = new Float32Array(noise_texture_size * stride);
+        for (let i = 0; i < noise_texture_size * stride; i += stride) {
+            const noise = new THREE.Vector2(
+                (Math.random() * 2) - 1,
+                (Math.random() * 2) - 1
+            );
+            noise.normalize();
+            data[i] = noise.x;
+            data[i + 1] = noise.y;
+            data[i + 2] = 0.0;
+            data[i + 3] = 1.0;
+        }
+        this.noise_texture = new THREE.DataTexture(
+            data,
+            this.noise_texture_width,
+            this.noise_texture_height,
+            THREE.RGBAFormat,
+            THREE.FloatType
+        );
+        this.noise_texture.wrapS = THREE.RepeatWrapping;
+        this.noise_texture.wrapT = THREE.RepeatWrapping;
     }
 
 });
