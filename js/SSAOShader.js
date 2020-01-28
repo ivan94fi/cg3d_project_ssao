@@ -11,18 +11,25 @@ var SSAOShader = {
         "t_diffuse": { value: null },
         "t_depth": { value: null },
         "t_noise": { value: null },
+        "t_normal": { value: null },
         "sample_kernel": { value: null },
         "resolution": { value: new Vector2() },
         "texel_size": { value: new Vector2() },
         "camera_near": { value: null },
         "camera_far": { value: null },
-        "noise_scale": { value: new Vector2() }
+        "noise_scale": { value: new Vector2() },
+        "kernel_radius": { value: null },
     },
 
     vertexShader: `
+        uniform float camera_near;
+        uniform float camera_far;
+
         varying vec2 vUv;
+        varying vec3 view_ray;
         void main() {
            vUv = uv;
+           view_ray = vec3((camera_far / camera_near) * uv, camera_far);
            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
        }`,
 
@@ -32,38 +39,54 @@ var SSAOShader = {
         uniform sampler2D t_diffuse;
         uniform sampler2D t_depth;
         uniform sampler2D t_noise;
+        uniform sampler2D t_normal;
         uniform vec2 resolution;
         uniform vec2 texel_size;
         uniform float camera_near;
         uniform float camera_far;
         uniform vec3 sample_kernel[KERNEL_SIZE];
         uniform vec2 noise_scale;
+        uniform float kernel_radius;
+        uniform mat4 projectionMatrix;
 
         varying vec2 vUv;
+        varying vec3 view_ray;
 
         void main() {
             vec4 texel = texture2D(t_diffuse, vUv);
             float depth = texture2D(t_depth, vUv).x;
-            vec4 noise = texture2D(t_noise, vUv * noise_scale);
-            // gl_FragColor = vec4(sample_kernel[int(vUv.x * vUv.y * float(KERNEL_SIZE))], 1.0);
-            gl_FragColor = vec4(vec3(depth), 1.0);
+            vec3 noise = texture2D(t_noise, vUv * noise_scale).xyz * 2.0 - 1.0;
+            vec3 normal = texture2D(t_normal, vUv).xyz * 2.0 - 1.0;
+            normal =  normalize(normal);
 
-            // TODO:
-            // - calcolare viewray
-            // - usare depth texture (trovare formula per unprojection)
-            // - passare normal map come texture
-            // - calcolare origin
+            vec3 origin = view_ray * (depth / camera_far);
 
-            // depth > 0 : sì
-            // depth < 1 : modello sì, sfondo no
-            // depth <= 1 : sì
-            // depth == 1: modello no, sfondo sì
-            // depth: valori tutti in (0,1], sfondo == 1
-            // if (depth < 0.9) {
-            //     gl_FragColor = vec4(0.2,0.6,0.2,1.0);
-            // } else {
-            //     gl_FragColor = vec4(0.6,0.2,0.2,1.0);
-            // }
+            vec3 tangent = normalize(noise - normal * dot(noise, normal));
+            vec3 bitangent = cross(normal, tangent);
+            mat3 tbn = mat3(tangent, bitangent, normal);
+
+            float occlusion = 0.0;
+            for (int i = 0; i < KERNEL_SIZE; ++i) {
+                // get sample position:
+                vec3 sample_point = tbn * sample_kernel[i];
+                sample_point = sample_point * kernel_radius + origin;
+
+                // project sample position:
+                vec4 offset = projectionMatrix * vec4(sample_point, 1.0);
+                offset.xy /= offset.w;
+                offset.xy = offset.xy * 0.5 + 0.5;
+
+                // get sample depth:
+                float sample_depth = texture2D(t_depth, offset.xy).r;
+
+                // range check & accumulate:
+                float range_check = abs(origin.z - sample_depth) < kernel_radius ? 1.0 : 0.0;
+                occlusion += (sample_depth <= sample_point.z ? 1.0 : 0.0) * range_check;
+            }
+
+            occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
+            gl_FragColor = vec4( texel.rgb * vec3( 1.0 - occlusion ), 1.0 );
+
         }`
 
 };

@@ -14,6 +14,7 @@ var SSAOPass = function(scene, camera, width, height) {
     this.height = height;
 
     this.kernel_size = 32;
+    this.kernel_radius = 8;
     this.sample_kernel = [];
     this.noise_texture_width = 4;
     this.noise_texture_height = 4;
@@ -41,6 +42,11 @@ var SSAOPass = function(scene, camera, width, height) {
         format: THREE.RGBAFormat
     });
 
+    this.normal_render_target = new THREE.WebGLRenderTarget(this.width, this.height, {
+        minFilter: THREE.LinearFilter,
+        magFilter: THREE.LinearFilter,
+        format: THREE.RGBAFormat
+    });
 
     this.ssao_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOShader.defines),
@@ -50,10 +56,15 @@ var SSAOPass = function(scene, camera, width, height) {
         blending: THREE.NoBlending
     });
 
+    this.normal_material = new THREE.MeshNormalMaterial();
+    this.normal_material.blending = THREE.NoBlending;
+
     this.ssao_material.uniforms['t_diffuse'].value = this.beauty_render_target.texture;
     this.ssao_material.uniforms['t_depth'].value = this.beauty_render_target.depthTexture;
     this.ssao_material.uniforms['t_noise'].value = this.noise_texture;
+    this.ssao_material.uniforms['t_normal'].value = this.normal_render_target.texture;
     this.ssao_material.uniforms['sample_kernel'].value = this.sample_kernel;
+    this.ssao_material.uniforms['kernel_radius'].value = this.kernel_radius;
     this.ssao_material.uniforms['resolution'].value.set(this.width, this.height);
     this.ssao_material.uniforms['texel_size'].value.set(1 / this.width, 1 / this.height);
     this.ssao_material.uniforms['camera_near'].value = this.camera.near;
@@ -96,6 +107,8 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         renderer.clear();
         renderer.render(this.scene, this.camera);
 
+        this.render_normal(renderer);
+
         this.ssao_material.uniforms['t_diffuse'].value = this.beauty_render_target.texture;
         this.ssao_material.blending = THREE.NoBlending;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
@@ -124,6 +137,34 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.fullscreen_quad.material = material;
         this.fullscreen_quad.render(renderer);
+
+        // restore original state
+        renderer.autoClear = original_auto_clear;
+        renderer.setClearColor(this.original_clear_color);
+        renderer.setClearAlpha(original_clear_alpha);
+
+    },
+
+    render_normal: function(renderer, clear_color, clear_alpha) {
+
+        // save original state
+        this.original_clear_color.copy(renderer.getClearColor());
+        let original_clear_alpha = renderer.getClearAlpha();
+        let original_auto_clear = renderer.autoClear;
+
+        renderer.setRenderTarget(this.normal_render_target);
+
+        // setup pass state
+        renderer.autoClear = false; // ???? TODO: is this necessary? Why?
+        if ((clear_color !== undefined) && (clear_color !== null)) {
+            renderer.setClearColor(clear_color);
+            renderer.setClearAlpha(clear_alpha || 0.0);
+            renderer.clear();
+        }
+
+        this.scene.overrideMaterial = this.normal_material;
+        renderer.render(this.scene, this.camera);
+        this.scene.overrideMaterial = null;
 
         // restore original state
         renderer.autoClear = original_auto_clear;
