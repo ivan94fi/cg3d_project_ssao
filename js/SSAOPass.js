@@ -2,7 +2,7 @@ import * as THREE from "../node_modules/three/build/three.module.js";
 import { Pass } from '../node_modules/three/examples/jsm/postprocessing/Pass.js';
 import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
 
-import { SSAOShader } from "./SSAOShader.js";
+import { SSAOShader, SSAOBlurShader } from "./SSAOShader.js";
 
 var SSAOPass = function(scene, camera, width, height) {
 
@@ -42,6 +42,8 @@ var SSAOPass = function(scene, camera, width, height) {
         format: THREE.RGBAFormat
     });
 
+    this.blur_render_target = this.ssao_render_target.clone();
+
     this.normal_render_target = new THREE.WebGLRenderTarget(this.width, this.height, {
         minFilter: THREE.LinearFilter,
         magFilter: THREE.LinearFilter,
@@ -74,6 +76,15 @@ var SSAOPass = function(scene, camera, width, height) {
         this.width / this.noise_texture_width,
         this.height / this.noise_texture_height
     );
+
+    this.blur_material = new THREE.ShaderMaterial({
+        defines: Object.assign({}, SSAOBlurShader.defines),
+        uniforms: THREE.UniformsUtils.clone(SSAOBlurShader.uniforms),
+        vertexShader: SSAOBlurShader.vertexShader,
+        fragmentShader: SSAOBlurShader.fragmentShader
+    });
+    this.blur_material.uniforms['t_diffuse'].value = this.ssao_render_target.texture;
+    this.blur_material.uniforms['resolution'].value.set(this.width, this.height);
 
     this.copy_material = new THREE.ShaderMaterial({
         uniforms: THREE.UniformsUtils.clone(CopyShader.uniforms),
@@ -113,8 +124,14 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.ssao_material.blending = THREE.NoBlending;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
 
-        this.copy_material.uniforms['tDiffuse'].value = this.ssao_render_target.texture;
+        this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
+
+        this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
         this.copy_material.blending = THREE.NoBlending;
+        this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+
+        this.copy_material.uniforms['tDiffuse'].value = this.blur_render_target.texture;
+        this.copy_material.blending = THREE.CustomBlending;
         this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
     },
 
@@ -213,6 +230,11 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         );
         this.noise_texture.wrapS = THREE.RepeatWrapping;
         this.noise_texture.wrapT = THREE.RepeatWrapping;
+    },
+
+    setSize: function(width, height) {
+        // TODO: override setSize from Pass
+        console.warn("setSize not implemented in SSAOPass.");
     }
 
 });

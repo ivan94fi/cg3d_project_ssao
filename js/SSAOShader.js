@@ -27,6 +27,7 @@ var SSAOShader = {
 
         varying vec2 vUv;
         varying vec3 view_ray;
+
         void main() {
            vUv = uv;
            view_ray = vec3((camera_far / camera_near) * uv, camera_far);
@@ -85,12 +86,47 @@ var SSAOShader = {
             }
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
-            gl_FragColor = vec4( texel.rgb * vec3( 1.0 - occlusion ), 1.0 );
+            gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
 
         }`
 
 };
 
-export {
-    SSAOShader
+var SSAOBlurShader = {
+
+    uniforms: {
+        "t_diffuse": { value: null },
+        "resolution": { value: new Vector2() }
+    },
+
+    vertexShader: `
+        varying vec2 vUv;
+        varying vec3 view_ray;
+
+        void main() {
+           vUv = uv;
+           gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+       }`,
+
+
+    fragmentShader: `
+        uniform sampler2D t_diffuse;
+        uniform vec2 resolution;
+        uniform vec2 texel_size;
+
+        varying vec2 vUv;
+
+        void main() {
+            float result = 0.0;
+            for ( int i = - 2; i <= 2; i ++ ) {
+                for ( int j = - 2; j <= 2; j ++ ) {
+                    vec2 offset = ( vec2( float( i ), float( j ) ) ) * texel_size;
+                    result += texture2D( t_diffuse, vUv + offset ).r;
+                }
+            }
+            gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
+        }`
+
 };
+
+export { SSAOShader, SSAOBlurShader };
