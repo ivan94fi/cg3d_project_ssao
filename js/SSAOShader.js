@@ -1,4 +1,4 @@
-import { Vector2 } from "../node_modules/three/build/three.module.js";
+import { Vector2, Matrix4 } from "../node_modules/three/build/three.module.js";
 
 var SSAOShader = {
 
@@ -19,6 +19,7 @@ var SSAOShader = {
         "camera_far": { value: null },
         "noise_scale": { value: new Vector2() },
         "kernel_radius": { value: null },
+        "camera_projection_matrix": { value: new Matrix4() },
     },
 
     vertexShader: `
@@ -29,9 +30,9 @@ var SSAOShader = {
         varying vec3 view_ray;
 
         void main() {
-           vUv = uv;
-           view_ray = vec3((camera_far / camera_near) * uv, camera_far);
-           gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            vUv = uv;
+            view_ray = vec3((camera_far / camera_near) * uv, camera_far);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
        }`,
 
 
@@ -48,7 +49,7 @@ var SSAOShader = {
         uniform vec3 sample_kernel[KERNEL_SIZE];
         uniform vec2 noise_scale;
         uniform float kernel_radius;
-        uniform mat4 projectionMatrix;
+        uniform mat4 camera_projection_matrix;
 
         varying vec2 vUv;
         varying vec3 view_ray;
@@ -73,7 +74,7 @@ var SSAOShader = {
                 sample_point = sample_point * kernel_radius + origin;
 
                 // project sample position:
-                vec4 offset = projectionMatrix * vec4(sample_point, 1.0);
+                vec4 offset = camera_projection_matrix * vec4(sample_point, 1.0);
                 offset.xy /= offset.w;
                 offset.xy = offset.xy * 0.5 + 0.5;
 
@@ -87,7 +88,6 @@ var SSAOShader = {
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
             gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-
         }`
 
 };

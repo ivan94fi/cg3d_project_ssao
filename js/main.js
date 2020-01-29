@@ -49,7 +49,7 @@ function init() {
     camera = new THREE.PerspectiveCamera(
         75, window.innerWidth / window.innerHeight, 0.1, 1000
     );
-    camera.position.z = 15;
+    camera.position.z = 3;
     camera.near = 1;
     camera.far = 30;
     console.warn("Camera:", "(", camera.near, ",", camera.far, ")");
@@ -77,7 +77,7 @@ function init() {
     promises["nanosuit.obj"]
         .then(obj => {
             scene.add(obj);
-            obj.translateY(-8.0);
+            obj.translateY(-13.0);
         })
         .catch(error => {
             console.error("Error in object loading: ", error);

@@ -76,6 +76,7 @@ var SSAOPass = function(scene, camera, width, height) {
         this.width / this.noise_texture_width,
         this.height / this.noise_texture_height
     );
+    this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
 
     this.blur_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOBlurShader.defines),
@@ -124,9 +125,10 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.ssao_material.blending = THREE.NoBlending;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
 
+        // this.blur_material.uniforms['t_diffuse'].value = this.ssao_render_target.texture;
         this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
 
-        this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
+        this.copy_material.uniforms['tDiffuse'].value = this.ssao_render_target.texture;
         this.copy_material.blending = THREE.NoBlending;
         this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
 
@@ -233,9 +235,19 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
     },
 
     setSize: function(width, height) {
-        // TODO: override setSize from Pass
-        console.warn("setSize not implemented in SSAOPass.");
-    }
+
+        this.width = width;
+        this.height = height;
+
+        this.beauty_render_target.setSize(width, height);
+        this.ssao_render_target.setSize(width, height);
+        this.normal_render_target.setSize(width, height);
+        this.blur_render_target.setSize(width, height);
+
+        this.ssao_material.uniforms['resolution'].value.set(width, height);
+        this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
+        this.blur_material.uniforms['resolution'].value.set(width, height);
+    },
 
 });
 
