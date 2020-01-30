@@ -137,17 +137,18 @@ function init() {
     container.appendChild(renderer.domElement);
 
     // Setup passes for postprocessing and composer
-    let render_pass = new RenderPass(scene, camera);
     fxaa_pass = new ShaderPass(FXAAShader);
     let ssao_pass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
-    let copy_pass = new ShaderPass(CopyShader);
 
     composer = new EffectComposer(renderer);
     composer.setSize(window.innerWidth, window.innerHeight);
-    // composer.addPass(render_pass);
     composer.addPass(ssao_pass);
-    composer.addPass(fxaa_pass);
-    // composer.addPass(copy_pass);
+    let use_fxaa = false;
+    if (use_fxaa) {
+        composer.addPass(fxaa_pass);
+    } else {
+        console.warn("FXAA disabled.");
+    }
 
     // Setup lights
     let ambient_light = new THREE.AmbientLight(0xffffff);
@@ -179,6 +180,7 @@ function onWindowResize(event) {
     renderer.setSize(width, height);
     composer.setSize(width, height);
 
+    // TODO: maybe this is not necessary anymore? Check
     let pixel_ratio = renderer.getPixelRatio();
     let uniforms = fxaa_pass.material.uniforms;
 
