@@ -37,6 +37,9 @@ let mesh;
 let vertex_shader;
 let fragment_shader;
 let fxaa_pass;
+let group;
+
+let debug_geometry = true;
 
 init();
 animate();
@@ -45,53 +48,81 @@ function init() {
 
     let container = document.querySelector("#container");
 
-    // Setup Camera
-    camera = new THREE.PerspectiveCamera(
-        75, window.innerWidth / window.innerHeight, 0.1, 1000
-    );
-    camera.position.z = 3;
-    camera.near = 1;
-    camera.far = 30;
-    console.warn("Camera:", "(", camera.near, ",", camera.far, ")");
+    /* ************************* DEBUG SCENE ******************************** */
+    if (debug_geometry) {
+        camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 100, 700);
+        camera.position.z = 500;
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xaaaaaa);
+        scene.add(new THREE.DirectionalLight());
+        scene.add(new THREE.HemisphereLight());
+        group = new THREE.Group();
+        scene.add(group);
+        var geometry = new THREE.BoxBufferGeometry(10, 10, 10);
+        for (var i = 0; i < 100; i++) {
+            var material = new THREE.MeshLambertMaterial({
+                color: Math.random() * 0xffffff
+            });
+            var mesh = new THREE.Mesh(geometry, material);
+            mesh.position.x = Math.random() * 400 - 200;
+            mesh.position.y = Math.random() * 400 - 200;
+            mesh.position.z = Math.random() * 400 - 200;
+            mesh.rotation.x = Math.random();
+            mesh.rotation.y = Math.random();
+            mesh.rotation.z = Math.random();
+            mesh.scale.setScalar(Math.random() * 10 + 2);
+            group.add(mesh);
+        }
+    }
+    /* ************************* NORMAL SCENE ******************************* */
+    else {
+        // Setup Camera
+        camera = new THREE.PerspectiveCamera(
+            75, window.innerWidth / window.innerHeight, 0.1, 1000
+        );
+        camera.position.z = 3;
+        camera.near = 1;
+        camera.far = 30;
+        console.warn("Camera:", "(", camera.near, ",", camera.far, ")");
 
-    // Setup Scene
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbbbbbb);
+        // Setup Scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xbbbbbb);
 
-    // Start async file loading as soon as possible.
-    let mtl_loader = new MTLLoader();
-    let obj_loader = new OBJLoader2();
+        // Start async file loading as soon as possible.
+        let mtl_loader = new MTLLoader();
+        let obj_loader = new OBJLoader2();
 
-    const models_dir = "../resources/models/nanosuit";
-    const loaders = [mtl_loader, obj_loader];
-    const files = ["nanosuit.mtl", "nanosuit.obj"]
+        const models_dir = "../resources/models/nanosuit";
+        const loaders = [mtl_loader, obj_loader];
+        const files = ["nanosuit.mtl", "nanosuit.obj"]
 
-    let promises = {};
-    files.forEach((file, i) => {
-        // Start loading and save promises
-        promises[file] = new Promise((resolve, reject) => {
-            loaders[i].load(models_dir + "/" + file, resolve);
+        let promises = {};
+        files.forEach((file, i) => {
+            // Start loading and save promises
+            promises[file] = new Promise((resolve, reject) => {
+                loaders[i].load(models_dir + "/" + file, resolve);
+            });
         });
-    });
 
-    promises["nanosuit.obj"]
-        .then(obj => {
-            scene.add(obj);
-            obj.translateY(-13.0);
-        })
-        .catch(error => {
-            console.error("Error in object loading: ", error);
-        });
+        promises["nanosuit.obj"]
+            .then(obj => {
+                scene.add(obj);
+                obj.translateY(-13.0);
+            })
+            .catch(error => {
+                console.error("Error in object loading: ", error);
+            });
 
-    promises["nanosuit.mtl"]
-        .then(mtl => {
-            obj_loader.addMaterials(
-                MtlObjBridge.addMaterialsFromMtlLoader(mtl, true));
-        })
-        .catch(error => {
-            console.error("Error in material loading: ", error);
-        });
-
+        promises["nanosuit.mtl"]
+            .then(mtl => {
+                obj_loader.addMaterials(
+                    MtlObjBridge.addMaterialsFromMtlLoader(mtl, true));
+            })
+            .catch(error => {
+                console.error("Error in material loading: ", error);
+            });
+    }
 
     // Setup renderer
     let canvas = document.createElement('canvas');
@@ -162,5 +193,10 @@ function animate() {
 }
 
 function render() {
+    if (debug_geometry) {
+        var timer = performance.now();
+        group.rotation.x = timer * 0.0002;
+        group.rotation.y = timer * 0.0001;
+    }
     composer.render();
 }
