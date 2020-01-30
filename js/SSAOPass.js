@@ -115,20 +115,32 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.render_normal(renderer);
 
-        this.ssao_material.uniforms['t_diffuse'].value = this.beauty_render_target.texture;
-        this.ssao_material.blending = THREE.NoBlending;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
 
-        // this.blur_material.uniforms['t_diffuse'].value = this.ssao_render_target.texture;
         this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
 
-        this.copy_material.uniforms['tDiffuse'].value = this.ssao_render_target.texture;
-        this.copy_material.blending = THREE.NoBlending;
-        this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        let output = "ssao";
 
-        this.copy_material.uniforms['tDiffuse'].value = this.blur_render_target.texture;
-        this.copy_material.blending = THREE.CustomBlending;
-        this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        if (output === "beauty") {
+            this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
+            this.copy_material.blending = THREE.NoBlending;
+            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        } else if (output === "ssao") {
+            this.copy_material.uniforms['tDiffuse'].value = this.ssao_render_target.texture;
+            this.copy_material.blending = THREE.NoBlending;
+            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        } else if (output === "blur") {
+            this.copy_material.uniforms['tDiffuse'].value = this.blur_render_target.texture;
+            this.copy_material.blending = THREE.NoBlending;
+            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        } else if (output == "complete") {
+            this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
+            this.copy_material.blending = THREE.NoBlending;
+            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+            this.copy_material.uniforms['tDiffuse'].value = this.blur_render_target.texture;
+            this.copy_material.blending = THREE.CustomBlending;
+            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+        }
     },
 
     render_on_quad: function(renderer, material, render_target, clear_color, clear_alpha) {
