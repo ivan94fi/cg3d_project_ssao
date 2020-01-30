@@ -68,14 +68,8 @@ var SSAOPass = function(scene, camera, width, height) {
     this.ssao_material.uniforms['sample_kernel'].value = this.sample_kernel;
     this.ssao_material.uniforms['kernel_radius'].value = this.kernel_radius;
     this.ssao_material.uniforms['resolution'].value.set(this.width, this.height);
-    this.ssao_material.uniforms['texel_size'].value.set(1 / this.width, 1 / this.height);
     this.ssao_material.uniforms['camera_near'].value = this.camera.near;
     this.ssao_material.uniforms['camera_far'].value = this.camera.far;
-    this.ssao_material.uniforms['noise_scale'].value.set(
-        // TODO: maybe this should be computed at runtime in the shader.
-        this.width / this.noise_texture_width,
-        this.height / this.noise_texture_height
-    );
     this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
 
     this.blur_material = new THREE.ShaderMaterial({

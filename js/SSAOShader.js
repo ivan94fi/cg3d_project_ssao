@@ -14,10 +14,8 @@ var SSAOShader = {
         "t_normal": { value: null },
         "sample_kernel": { value: null },
         "resolution": { value: new Vector2() },
-        "texel_size": { value: new Vector2() },
         "camera_near": { value: null },
         "camera_far": { value: null },
-        "noise_scale": { value: new Vector2() },
         "kernel_radius": { value: null },
         "camera_projection_matrix": { value: new Matrix4() },
     },
@@ -43,11 +41,9 @@ var SSAOShader = {
         uniform sampler2D t_noise;
         uniform sampler2D t_normal;
         uniform vec2 resolution;
-        uniform vec2 texel_size;
         uniform float camera_near;
         uniform float camera_far;
         uniform vec3 sample_kernel[KERNEL_SIZE];
-        uniform vec2 noise_scale;
         uniform float kernel_radius;
         uniform mat4 camera_projection_matrix;
 
@@ -57,6 +53,7 @@ var SSAOShader = {
         void main() {
             vec4 texel = texture2D(t_diffuse, vUv);
             float depth = texture2D(t_depth, vUv).x;
+            vec2 noise_scale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
             vec3 noise = texture2D(t_noise, vUv * noise_scale).xyz * 2.0 - 1.0;
             vec3 normal = texture2D(t_normal, vUv).xyz * 2.0 - 1.0;
             normal =  normalize(normal);
@@ -112,11 +109,11 @@ var SSAOBlurShader = {
     fragmentShader: `
         uniform sampler2D t_diffuse;
         uniform vec2 resolution;
-        uniform vec2 texel_size;
 
         varying vec2 vUv;
 
         void main() {
+            vec2 texel_size = (1.0 / resolution);
             float result = 0.0;
             for ( int i = - 2; i <= 2; i ++ ) {
                 for ( int j = - 2; j <= 2; j ++ ) {
