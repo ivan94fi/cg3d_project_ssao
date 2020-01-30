@@ -30,6 +30,7 @@ import {
 } from './SSAOPass.js';
 import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
 
+import { custom_random } from "./utils.js"
 
 let camera, controls, scene, renderer, composer;
 let uniforms;
@@ -61,16 +62,16 @@ function init() {
         var geometry = new THREE.BoxBufferGeometry(10, 10, 10);
         for (var i = 0; i < 100; i++) {
             var material = new THREE.MeshLambertMaterial({
-                color: Math.random() * 0xffffff
+                color: custom_random() * 0xffffff
             });
             var mesh = new THREE.Mesh(geometry, material);
-            mesh.position.x = Math.random() * 400 - 200;
-            mesh.position.y = Math.random() * 400 - 200;
-            mesh.position.z = Math.random() * 400 - 200;
-            mesh.rotation.x = Math.random();
-            mesh.rotation.y = Math.random();
-            mesh.rotation.z = Math.random();
-            mesh.scale.setScalar(Math.random() * 10 + 2);
+            mesh.position.x = custom_random() * 400 - 200;
+            mesh.position.y = custom_random() * 400 - 200;
+            mesh.position.z = custom_random() * 400 - 200;
+            mesh.rotation.x = custom_random();
+            mesh.rotation.y = custom_random();
+            mesh.rotation.z = custom_random();
+            mesh.scale.setScalar(custom_random() * 10 + 2);
             group.add(mesh);
         }
     }

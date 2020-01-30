@@ -2,6 +2,7 @@ import * as THREE from "../node_modules/three/build/three.module.js";
 import { Pass } from '../node_modules/three/examples/jsm/postprocessing/Pass.js';
 import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
 
+import { custom_random } from "./utils.js";
 import { SSAOShader, SSAOBlurShader } from "./SSAOShader.js";
 
 var SSAOPass = function(scene, camera, width, height) {
@@ -201,9 +202,9 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
     generate_sample_kernel: function() {
         for (let i = 0; i < this.kernel_size; i++) {
             let sample = new THREE.Vector3(
-                (Math.random() * 2) - 1,
-                (Math.random() * 2) - 1,
-                Math.random()
+                (custom_random() * 2) - 1,
+                (custom_random() * 2) - 1,
+                custom_random()
             );
             sample.normalize();
 
@@ -220,8 +221,8 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         let data = new Float32Array(noise_texture_size * stride);
         for (let i = 0; i < noise_texture_size * stride; i += stride) {
             const noise = new THREE.Vector2(
-                (Math.random() * 2) - 1,
-                (Math.random() * 2) - 1
+                (custom_random() * 2) - 1,
+                (custom_random() * 2) - 1
             );
             noise.normalize();
             data[i] = noise.x;
