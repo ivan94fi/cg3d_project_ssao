@@ -54,9 +54,9 @@ var SSAOShader = {
             vec4 texel = texture2D(t_diffuse, vUv);
             float depth = texture2D(t_depth, vUv).x;
             vec2 noise_scale = vec2( resolution.x / 4.0, resolution.y / 4.0 );
-            vec3 noise = texture2D(t_noise, vUv * noise_scale).xyz * 2.0 - 1.0;
+            vec3 noise = texture2D(t_noise, vUv * noise_scale).xyz;
             vec3 normal = texture2D(t_normal, vUv).xyz * 2.0 - 1.0;
-            normal =  normalize(normal);
+            normal = normalize(normal);
 
             vec3 origin = view_ray * (depth / camera_far);
 
@@ -80,11 +80,32 @@ var SSAOShader = {
 
                 // range check & accumulate:
                 float range_check = abs(origin.z - sample_depth) < kernel_radius ? 1.0 : 0.0;
-                occlusion += (sample_depth <= sample_point.z ? 1.0 : 0.0) * range_check;
+                occlusion += (sample_depth >= sample_point.z ? 1.0 : 0.0) * range_check;
+
+                /* ********************************************** */
+                // Chapman:
+                // float rangeCheck= abs(origin.z - sampleDepth) < uRadius ? 1.0 : 0.0;
+                // occlusion += (sampleDepth <= sample.z ? 1.0 : 0.0) * rangeCheck;
+                // occlusion = 1.0 - (occlusion / uSampleKernelSize);
+
+                // Learn OpenGL:
+                // float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
+                // occlusion += (sampleDepth >= sample.z + bias ? 1.0 : 0.0) * rangeCheck;
+                // occlusion = 1.0 - (occlusion / kernelSize);
+                // FragColor = occlusion
+
+                // threejs
+                // float delta = sampleDepth - realDepth;
+                // if ( delta > minDistance && delta < maxDistance ) { // if fragment is before sample point, increase occlusion
+                //     occlusion += 1.0;
+                // }
+                // occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
+                // gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+                /* ********************************************** */
             }
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
-            gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
+            gl_FragColor = vec4( vec3(occlusion), 1.0 );
         }`
 
 };

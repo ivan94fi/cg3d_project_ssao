@@ -207,6 +207,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
                 custom_random()
             );
             sample.normalize();
+            // sample.multiplyScalar(custom_random()); // FIXME: is this necessary?
 
             let scale = i / this.kernel_size;
             scale = THREE.Math.lerp(0.1, 1.0, scale * scale);
