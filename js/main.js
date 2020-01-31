@@ -41,6 +41,7 @@ let fxaa_pass;
 let group;
 
 let debug_geometry = true;
+let rotate = false;
 
 init();
 animate();
@@ -152,15 +153,17 @@ function init() {
     }
 
     // Setup lights
-    let ambient_light = new THREE.AmbientLight(0xffffff);
-    scene.add(ambient_light);
-    let directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
-    scene.add(directional_light);
-    let point_light = new THREE.PointLight(0xcccccc, 1, 100);
-    point_light.position.set(5, 5, 20);
-    scene.add(point_light);
-    let light = new THREE.HemisphereLight();
-    scene.add(light);
+    if (!debug_geometry) {
+        let ambient_light = new THREE.AmbientLight(0xffffff);
+        scene.add(ambient_light);
+        let directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
+        scene.add(directional_light);
+        let point_light = new THREE.PointLight(0xcccccc, 1, 100);
+        point_light.position.set(5, 5, 20);
+        scene.add(point_light);
+        let light = new THREE.HemisphereLight();
+        scene.add(light);
+    }
 
     // Setup controls
     controls = new MapControls(camera, renderer.domElement);
@@ -197,9 +200,11 @@ function animate() {
 
 function render() {
     if (debug_geometry) {
-        var timer = performance.now();
-        group.rotation.x = timer * 0.0002;
-        group.rotation.y = timer * 0.0001;
+        if (rotate) {
+            var timer = performance.now();
+            group.rotation.x = timer * 0.0002;
+            group.rotation.y = timer * 0.0001;
+        }
     }
     composer.render();
 }
