@@ -1,6 +1,8 @@
 import * as THREE from "../node_modules/three/build/three.module.js";
 import { Pass } from '../node_modules/three/examples/jsm/postprocessing/Pass.js';
 import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
+import { SimplexNoise } from "../node_modules/three/examples/jsm/math/SimplexNoise.js";
+
 
 import { custom_random } from "./utils.js";
 import { SSAOShader, SSAOBlurShader } from "./SSAOShader.js";
@@ -73,6 +75,10 @@ var SSAOPass = function(scene, camera, width, height) {
     this.ssao_material.uniforms['camera_far'].value = this.camera.far;
     this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
 
+    // DEBUG: TODO: remove
+    this.ssao_material.uniforms['cameraProjectionMatrix'].value.copy(this.camera.projectionMatrix);
+    this.ssao_material.uniforms['cameraInverseProjectionMatrix'].value.getInverse(this.camera.projectionMatrix);
+
     this.blur_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOBlurShader.defines),
         uniforms: THREE.UniformsUtils.clone(SSAOBlurShader.uniforms),
@@ -106,7 +112,18 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
     constructor: SSAOPass,
 
-    dispose: function() {},
+    dispose: function () {
+        this.beauty_render_target.dispose();
+        this.normal_render_target.dispose();
+        this.ssao_render_target.dispose();
+        this.blur_render_target.dispose();
+
+        this.normal_material.dispose();
+        this.blur_material.dispose();
+        this.copy_material.dispose();
+
+        this.fullscreen_quad.dispose();
+    },
 
     render: function(renderer, write_buffer) {
         // Render beauty and depth
@@ -120,7 +137,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
 
-        let output = "ssao";
+        let output = "complete";
 
         if (output === "beauty") {
             this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
@@ -242,6 +259,46 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.noise_texture.wrapT = THREE.RepeatWrapping;
     },
 
+    // DEBUG: TODO: remove
+    generate_random_kernel_rotations: function() {
+
+        var width = 4,
+            height = 4;
+
+        if (SimplexNoise === undefined) {
+            console.error('THREE.SSAOPass: The pass relies on SimplexNoise.');
+        }
+
+        var simplex = new SimplexNoise();
+
+        var size = width * height;
+        var data = new Float32Array(size * 4);
+
+        for (var i = 0; i < size; i++) {
+            var stride = i * 4;
+            var x = (Math.random() * 2) - 1;
+            var y = (Math.random() * 2) - 1;
+            var z = 0;
+            var noise = simplex.noise3d(x, y, z);
+            data[stride] = noise;
+            data[stride + 1] = noise;
+            data[stride + 2] = noise;
+            data[stride + 3] = 1;
+
+        }
+
+        this.noise_texture = new THREE.DataTexture(
+            data,
+            this.noise_texture_width,
+            this.noise_texture_height,
+            THREE.RGBAFormat,
+            THREE.FloatType
+        );
+        this.noise_texture.wrapS = THREE.RepeatWrapping;
+        this.noise_texture.wrapT = THREE.RepeatWrapping;
+
+    },
+
     setSize: function(width, height) {
 
         this.width = width;
@@ -254,6 +311,8 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.ssao_material.uniforms['resolution'].value.set(width, height);
         this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
+        this.ssao_material.uniforms['cameraProjectionMatrix'].value.copy(this.camera.projectionMatrix);
+        this.ssao_material.uniforms['cameraInverseProjectionMatrix'].value.getInverse(this.camera.projectionMatrix);
         this.blur_material.uniforms['resolution'].value.set(width, height);
     },
 

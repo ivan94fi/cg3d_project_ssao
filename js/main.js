@@ -40,7 +40,7 @@ let fragment_shader;
 let fxaa_pass;
 let group;
 
-let debug_geometry = true;
+let debug_geometry = false;
 let rotate = false;
 
 init();
@@ -90,6 +90,13 @@ function init() {
         // Setup Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
+
+
+        var plane_geometry = new THREE.PlaneBufferGeometry( 10, 20, 32 );
+        var plane_material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
+        var plane = new THREE.Mesh( plane_geometry, plane_material );
+        plane.position.z -= 2;
+        scene.add( plane );
 
         // Start async file loading as soon as possible.
         let mtl_loader = new MTLLoader();

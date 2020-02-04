@@ -18,6 +18,8 @@ var SSAOShader = {
         "camera_far": { value: null },
         "kernel_radius": { value: null },
         "camera_projection_matrix": { value: new Matrix4() },
+        "cameraProjectionMatrix": { value: new Matrix4() },
+        "cameraInverseProjectionMatrix": { value: new Matrix4() },
     },
 
     vertexShader: `
@@ -29,7 +31,8 @@ var SSAOShader = {
 
         void main() {
             vUv = uv;
-            view_ray = vec3((camera_far / camera_near) * uv, camera_far);
+            vec2 ndc = uv * 2.0 - 1.0;
+            view_ray = vec3((camera_far / camera_near) * ndc, camera_far);
             gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
        }`,
 
@@ -47,8 +50,40 @@ var SSAOShader = {
         uniform float kernel_radius;
         uniform mat4 camera_projection_matrix;
 
+        uniform mat4 cameraProjectionMatrix;
+        uniform mat4 cameraInverseProjectionMatrix;
+
         varying vec2 vUv;
         varying vec3 view_ray;
+
+        // DEBUG:
+        vec3 red = vec3(1.0, 0.0, 0.0);
+        vec3 green = vec3(0.0, 1.0, 0.0);
+        vec3 blue = vec3(0.0, 0.0, 1.0);
+
+        #include <packing>
+
+        vec3 getViewPosition( const in vec2 screenPosition, const in float depth, const in float viewZ ) {
+            float clipW = cameraProjectionMatrix[2][3] * viewZ + cameraProjectionMatrix[3][3];
+            vec4 clipPosition = vec4( ( vec3( screenPosition, depth ) - 0.5 ) * 2.0, 1.0 );
+            clipPosition *= clipW; // unprojection.
+            return ( cameraInverseProjectionMatrix * clipPosition ).xyz;
+        }
+
+        float getLinearDepth( const in vec2 screenPosition ) {
+            // From projected coordinates in [0,1] to view coordinates to ortographic coordinates in [n,f]
+
+            // fragCoordZ is (0.5 * z_ndc + 0.5). Let's call them biased ndc coordinates.
+            float fragCoordZ = texture2D( t_depth, screenPosition ).x;
+
+            // perspectiveDepthToViewZ transforms from biased ndc (in [0,1]) to view coordinates.
+            // It is the unprojection => from nonlinear projected coords to linear unprojected coords.
+            float viewZ = perspectiveDepthToViewZ( fragCoordZ, camera_near, camera_far );
+
+            // From viewZ, which is already linear but in [n,f], to [0,1].
+            // This is just a linear transform to scale the values in [0,1].
+            return viewZToOrthographicDepth( viewZ, camera_near, camera_far );
+        }
 
         void main() {
             vec4 texel = texture2D(t_diffuse, vUv);
@@ -58,7 +93,15 @@ var SSAOShader = {
             vec3 normal = texture2D(t_normal, vUv).xyz * 2.0 - 1.0;
             normal = normalize(normal);
 
-            vec3 origin = view_ray * (depth / camera_far);
+            float view_z = (camera_near * camera_far) / ((camera_far - camera_near) * depth - camera_far);
+
+            // FIXME: still does not work
+            // vec3 origin = view_ray * (view_z / camera_far);
+            // origin.xy *= (view_z);
+            vec3 origin = vec3(0.0);
+
+            vec3 three_origin = getViewPosition(vUv, depth, view_z);
+            origin = three_origin;
 
             vec3 tangent = normalize(noise - normal * dot(noise, normal));
             vec3 bitangent = cross(normal, tangent);
@@ -68,40 +111,21 @@ var SSAOShader = {
             for (int i = 0; i < KERNEL_SIZE; ++i) {
                 // get sample position:
                 vec3 sample_point = tbn * sample_kernel[i];
-                sample_point = sample_point * kernel_radius + origin;
+                sample_point = (sample_point * kernel_radius) + origin;
 
                 // project sample position:
-                vec4 offset = camera_projection_matrix * vec4(sample_point, 1.0);
-                offset.xy /= offset.w;
-                offset.xy = offset.xy * 0.5 + 0.5;
+                vec4 sample_point_ndc = camera_projection_matrix * vec4(sample_point, 1.0);
+                sample_point_ndc.xy /= sample_point_ndc.w;
+                vec2 sample_point_uv = sample_point_ndc.xy * 0.5 + 0.5;
 
-                // get sample depth:
-                float sample_depth = texture2D(t_depth, offset.xy).r;
+                float sample_depth = texture2D(t_depth, sample_point_uv).r;
+                float linear_sample_depth = (camera_near * camera_far) / ((camera_far - camera_near) * sample_depth - camera_far);
 
-                // range check & accumulate:
-                float range_check = abs(origin.z - sample_depth) < kernel_radius ? 1.0 : 0.0;
-                occlusion += (sample_depth >= sample_point.z ? 1.0 : 0.0) * range_check;
-
-                /* ********************************************** */
-                // Chapman:
-                // float rangeCheck= abs(origin.z - sampleDepth) < uRadius ? 1.0 : 0.0;
-                // occlusion += (sampleDepth <= sample.z ? 1.0 : 0.0) * rangeCheck;
-                // occlusion = 1.0 - (occlusion / uSampleKernelSize);
-
-                // Learn OpenGL:
-                // float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPos.z - sampleDepth));
-                // occlusion += (sampleDepth >= sample.z + bias ? 1.0 : 0.0) * rangeCheck;
-                // occlusion = 1.0 - (occlusion / kernelSize);
-                // FragColor = occlusion
-
-                // threejs
-                // float delta = sampleDepth - realDepth;
-                // if ( delta > minDistance && delta < maxDistance ) { // if fragment is before sample point, increase occlusion
-                //     occlusion += 1.0;
-                // }
-                // occlusion = clamp( occlusion / float( KERNEL_SIZE ), 0.0, 1.0 );
-                // gl_FragColor = vec4( vec3( 1.0 - occlusion ), 1.0 );
-                /* ********************************************** */
+                float delta = linear_sample_depth - sample_point.z;
+                float range_check = smoothstep(0.0, 1.0, kernel_radius / abs(linear_sample_depth - origin.z));
+                // float range_check = abs(linear_sample_depth - origin.z) < kernel_radius ? 1.0 : 0.0;
+                // occlusion += ((delta >= 0.05 && delta < 4.0) ? 1.0 : 0.0) * range_check;
+                occlusion += (delta >= 0.0 ? 1.0 : 0.0) * range_check;
             }
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
