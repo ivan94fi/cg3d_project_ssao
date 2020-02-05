@@ -193,6 +193,7 @@ function init() {
     // gui.add(ssao_pass, 'max_distance').min(0.01).max(0.3);
     gui.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
     gui.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
+    gui.add(ssao_pass, 'power_factor').min(1.0).max(5.0);
 
     // Handle window resize events
     onWindowResize();

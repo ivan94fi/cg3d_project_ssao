@@ -22,6 +22,7 @@ var SSAOShader = {
         "camera_projection_matrix": { value: new Matrix4() },
         "cameraProjectionMatrix": { value: new Matrix4() },
         "cameraInverseProjectionMatrix": { value: new Matrix4() },
+        "power_factor": { value: null },
     },
 
     vertexShader: `
@@ -53,6 +54,7 @@ var SSAOShader = {
         uniform float min_distance;
         uniform float max_distance;
         uniform mat4 camera_projection_matrix;
+        uniform float power_factor;
 
         uniform mat4 cameraProjectionMatrix;
         uniform mat4 cameraInverseProjectionMatrix;
@@ -129,9 +131,9 @@ var SSAOShader = {
                 // Reversed w.r.t to threejs because I have negative view space depths
                 float delta = linear_real_depth - sample_depth;
 
-                // float range_check = smoothstep(0.0, 1.0, kernel_radius / abs(linear_real_depth - origin.z));
+                float range_check = smoothstep(0.0, 1.0, pow(kernel_radius / abs(linear_real_depth - origin.z), power_factor));
                 // float range_check = abs(linear_real_depth - origin.z) < kernel_radius ? 1.0 : 0.0;
-                float range_check = 1.0;
+                // float range_check = 1.0;
 
                 occlusion += ((delta >= min_distance && delta < max_distance) ? 1.0 : 0.0) * range_check;
                 // occlusion += (delta >= 0.0 ? 1.0 : 0.0) * range_check;

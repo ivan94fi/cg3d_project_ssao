@@ -29,6 +29,7 @@ var SSAOPass = function(scene, camera, width, height) {
     this.max_distance = 67.0;
     // this.min_distance = 0.005;
     // this.max_distance = 0.1;
+    this.power_factor = 2.0;
 
     this.generate_sample_kernel();
     this.generate_noise_texture();
@@ -143,6 +144,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.ssao_material.uniforms['kernel_radius'].value = this.kernel_radius;
         this.ssao_material.uniforms['min_distance'].value = this.min_distance;
         this.ssao_material.uniforms['max_distance'].value = this.max_distance;
+        this.ssao_material.uniforms['power_factor'].value = this.power_factor;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
 
         this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
