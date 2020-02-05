@@ -30,6 +30,9 @@ import {
 } from './SSAOPass.js';
 import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
 
+import { GUI } from '../node_modules/three/examples/jsm/libs/dat.gui.module.js';
+
+
 import { custom_random } from "./utils.js"
 
 let camera, controls, scene, renderer, composer;
@@ -40,7 +43,7 @@ let fragment_shader;
 let fxaa_pass;
 let group;
 
-let debug_geometry = false;
+let debug_geometry = true;
 let rotate = false;
 
 init();
@@ -92,11 +95,11 @@ function init() {
         scene.background = new THREE.Color(0xbbbbbb);
 
 
-        var plane_geometry = new THREE.PlaneBufferGeometry( 10, 20, 32 );
-        var plane_material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
-        var plane = new THREE.Mesh( plane_geometry, plane_material );
+        var plane_geometry = new THREE.PlaneBufferGeometry(10, 20, 32);
+        var plane_material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        var plane = new THREE.Mesh(plane_geometry, plane_material);
         plane.position.z -= 2;
-        scene.add( plane );
+        scene.add(plane);
 
         // Start async file loading as soon as possible.
         let mtl_loader = new MTLLoader();
@@ -176,6 +179,20 @@ function init() {
     controls = new MapControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
     controls.update();
+
+    let gui = new GUI();
+
+    gui.add(ssao_pass, 'output', {
+        'Default': "complete",
+        'SSAO': "ssao",
+        'SSAO + Blur': "blur",
+        'Beauty': "beauty",
+    }).onChange(value => ssao_pass.output = value);
+    gui.add(ssao_pass, 'kernel_radius').min(0).max(32);
+    // gui.add(ssao_pass, 'min_distance').min(0.001).max(0.02);
+    // gui.add(ssao_pass, 'max_distance').min(0.01).max(0.3);
+    gui.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
+    gui.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
 
     // Handle window resize events
     onWindowResize();

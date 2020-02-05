@@ -17,6 +17,8 @@ var SSAOShader = {
         "camera_near": { value: null },
         "camera_far": { value: null },
         "kernel_radius": { value: null },
+        "min_distance": { value: null },
+        "max_distance": { value: null },
         "camera_projection_matrix": { value: new Matrix4() },
         "cameraProjectionMatrix": { value: new Matrix4() },
         "cameraInverseProjectionMatrix": { value: new Matrix4() },
@@ -48,6 +50,8 @@ var SSAOShader = {
         uniform float camera_far;
         uniform vec3 sample_kernel[KERNEL_SIZE];
         uniform float kernel_radius;
+        uniform float min_distance;
+        uniform float max_distance;
         uniform mat4 camera_projection_matrix;
 
         uniform mat4 cameraProjectionMatrix;
@@ -118,14 +122,19 @@ var SSAOShader = {
                 sample_point_ndc.xy /= sample_point_ndc.w;
                 vec2 sample_point_uv = sample_point_ndc.xy * 0.5 + 0.5;
 
-                float sample_depth = texture2D(t_depth, sample_point_uv).r;
-                float linear_sample_depth = (camera_near * camera_far) / ((camera_far - camera_near) * sample_depth - camera_far);
+                float real_depth = texture2D(t_depth, sample_point_uv).r;
+                float linear_real_depth = (camera_near * camera_far) / ((camera_far - camera_near) * real_depth - camera_far);
+                float sample_depth = sample_point.z;
 
-                float delta = linear_sample_depth - sample_point.z;
-                float range_check = smoothstep(0.0, 1.0, kernel_radius / abs(linear_sample_depth - origin.z));
-                // float range_check = abs(linear_sample_depth - origin.z) < kernel_radius ? 1.0 : 0.0;
-                // occlusion += ((delta >= 0.05 && delta < 4.0) ? 1.0 : 0.0) * range_check;
-                occlusion += (delta >= 0.0 ? 1.0 : 0.0) * range_check;
+                // Reversed w.r.t to threejs because I have negative view space depths
+                float delta = linear_real_depth - sample_depth;
+
+                // float range_check = smoothstep(0.0, 1.0, kernel_radius / abs(linear_real_depth - origin.z));
+                // float range_check = abs(linear_real_depth - origin.z) < kernel_radius ? 1.0 : 0.0;
+                float range_check = 1.0;
+
+                occlusion += ((delta >= min_distance && delta < max_distance) ? 1.0 : 0.0) * range_check;
+                // occlusion += (delta >= 0.0 ? 1.0 : 0.0) * range_check;
             }
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));

@@ -17,11 +17,18 @@ var SSAOPass = function(scene, camera, width, height) {
     this.height = height;
 
     this.kernel_size = 32;
-    this.kernel_radius = 8;
+    this.kernel_radius = 16;
     this.sample_kernel = [];
     this.noise_texture_width = 4;
     this.noise_texture_height = 4;
     this.noise_texture = null;
+
+    this.output = "ssao";
+
+    this.min_distance = 4.0;
+    this.max_distance = 67.0;
+    // this.min_distance = 0.005;
+    // this.max_distance = 0.1;
 
     this.generate_sample_kernel();
     this.generate_noise_texture();
@@ -112,7 +119,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
     constructor: SSAOPass,
 
-    dispose: function () {
+    dispose: function() {
         this.beauty_render_target.dispose();
         this.normal_render_target.dispose();
         this.ssao_render_target.dispose();
@@ -133,25 +140,26 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.render_normal(renderer);
 
+        this.ssao_material.uniforms['kernel_radius'].value = this.kernel_radius;
+        this.ssao_material.uniforms['min_distance'].value = this.min_distance;
+        this.ssao_material.uniforms['max_distance'].value = this.max_distance;
         this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
 
         this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
 
-        let output = "complete";
-
-        if (output === "beauty") {
+        if (this.output === "beauty") {
             this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
             this.copy_material.blending = THREE.NoBlending;
             this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
-        } else if (output === "ssao") {
+        } else if (this.output === "ssao") {
             this.copy_material.uniforms['tDiffuse'].value = this.ssao_render_target.texture;
             this.copy_material.blending = THREE.NoBlending;
             this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
-        } else if (output === "blur") {
+        } else if (this.output === "blur") {
             this.copy_material.uniforms['tDiffuse'].value = this.blur_render_target.texture;
             this.copy_material.blending = THREE.NoBlending;
             this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
-        } else if (output == "complete") {
+        } else if (this.output == "complete") {
             this.copy_material.uniforms['tDiffuse'].value = this.beauty_render_target.texture;
             this.copy_material.blending = THREE.NoBlending;
             this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
