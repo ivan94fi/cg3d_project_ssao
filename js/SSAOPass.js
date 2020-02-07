@@ -23,13 +23,13 @@ var SSAOPass = function(scene, camera, width, height) {
     this.noise_texture_height = 4;
     this.noise_texture = null;
 
-    this.output = "ssao";
+    this.output = "complete";
 
-    this.min_distance = 4.0;
-    this.max_distance = 67.0;
-    // this.min_distance = 0.005;
-    // this.max_distance = 0.1;
-    this.power_factor = 2.0;
+    // this.min_distance = 4.0;
+    // this.max_distance = 67.0;
+    this.min_distance = 1.0;
+    this.max_distance = 5.0;
+    this.power_factor = 1.0;
 
     this.generate_sample_kernel();
     this.generate_noise_texture();

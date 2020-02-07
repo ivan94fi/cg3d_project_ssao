@@ -43,7 +43,7 @@ let fragment_shader;
 let fxaa_pass;
 let group;
 
-let debug_geometry = true;
+let debug_geometry = false;
 let rotate = false;
 
 init();
@@ -85,21 +85,26 @@ function init() {
         camera = new THREE.PerspectiveCamera(
             75, window.innerWidth / window.innerHeight, 0.1, 1000
         );
-        camera.position.z = 3;
+        camera.position.x = 6;
+        camera.position.y = -2;
+        camera.position.z = -2;
         camera.near = 1;
-        camera.far = 30;
+        camera.far = 100;
         console.warn("Camera:", "(", camera.near, ",", camera.far, ")");
 
         // Setup Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
 
-
-        var plane_geometry = new THREE.PlaneBufferGeometry(10, 20, 32);
-        var plane_material = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-        var plane = new THREE.Mesh(plane_geometry, plane_material);
-        plane.position.z -= 2;
-        scene.add(plane);
+        const box_size = 30;
+        let box_geometry = new THREE.BoxBufferGeometry(box_size, box_size, box_size);
+        var box_material = new THREE.MeshPhongMaterial({
+            color: 0x1700aa,
+            shininess: 30,
+            side: THREE.BackSide
+        });
+        var box = new THREE.Mesh(box_geometry, box_material);
+        scene.add(box);
 
         // Start async file loading as soon as possible.
         let mtl_loader = new MTLLoader();
@@ -121,6 +126,8 @@ function init() {
             .then(obj => {
                 scene.add(obj);
                 obj.translateY(-13.0);
+                obj.translateZ(10);
+                obj.rotateX(-90 * Math.PI / 180);
             })
             .catch(error => {
                 console.error("Error in object loading: ", error);
@@ -178,15 +185,16 @@ function init() {
     // Setup controls
     controls = new MapControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
+    controls.target.set(0, -15, 0);
     controls.update();
 
     let gui = new GUI();
 
     gui.add(ssao_pass, 'output', {
-        'Default': "complete",
+        'Complete': "complete",
+        'Beauty': "beauty",
         'SSAO': "ssao",
         'SSAO + Blur': "blur",
-        'Beauty': "beauty",
     }).onChange(value => ssao_pass.output = value);
     gui.add(ssao_pass, 'kernel_radius').min(0).max(32);
     // gui.add(ssao_pass, 'min_distance').min(0.001).max(0.02);
