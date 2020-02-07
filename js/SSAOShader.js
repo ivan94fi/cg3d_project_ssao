@@ -23,20 +23,26 @@ var SSAOShader = {
         "cameraProjectionMatrix": { value: new Matrix4() },
         "cameraInverseProjectionMatrix": { value: new Matrix4() },
         "power_factor": { value: null },
+        "aspect": { value: null },
+        "tan_half_fov": { value: null },
     },
 
     vertexShader: `
         uniform float camera_near;
         uniform float camera_far;
+        uniform float aspect;
+        uniform float tan_half_fov;
 
         varying vec2 vUv;
         varying vec3 view_ray;
 
         void main() {
             vUv = uv;
-            vec2 ndc = uv * 2.0 - 1.0;
-            view_ray = vec3((camera_far / camera_near) * ndc, camera_far);
-            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            vec4 clip = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            // FIXME: Viewray is not working
+            // view_ray = vec3(tan_half_fov * aspect * clip.x, tan_half_fov * clip.y, 1.0);
+            view_ray = (camera_far / camera_near) * vec3(clip.x, clip.y, camera_near);
+            gl_Position = clip;
        }`,
 
 
@@ -70,12 +76,14 @@ var SSAOShader = {
         #include <packing>
 
         vec3 getViewPosition( const in vec2 screenPosition, const in float depth, const in float viewZ ) {
-            float clipW = cameraProjectionMatrix[2][3] * viewZ + cameraProjectionMatrix[3][3];
+            float clipW = -viewZ;
             vec4 clipPosition = vec4( ( vec3( screenPosition, depth ) - 0.5 ) * 2.0, 1.0 );
             clipPosition *= clipW; // unprojection.
             return ( cameraInverseProjectionMatrix * clipPosition ).xyz;
         }
 
+        /* **************  This is not used anymore  ************** */
+        /*
         float getLinearDepth( const in vec2 screenPosition ) {
             // From projected coordinates in [0,1] to view coordinates to ortographic coordinates in [n,f]
 
@@ -86,9 +94,19 @@ var SSAOShader = {
             // It is the unprojection => from nonlinear projected coords to linear unprojected coords.
             float viewZ = perspectiveDepthToViewZ( fragCoordZ, camera_near, camera_far );
 
-            // From viewZ, which is already linear but in [n,f], to [0,1].
+            // From viewZ, which is already linear but in [-n,-f], to [0,1].
             // This is just a linear transform to scale the values in [0,1].
             return viewZToOrthographicDepth( viewZ, camera_near, camera_far );
+        }
+        */
+        /* ******************************************************** */
+
+        // Unproject a value from nonlinear [0, 1] coordinates to linear view
+        // coordinates in [-n, -f]. Corresponds to a scale and bias from [0, 1]
+        // to [-1, 1], followed by application of inverse projection matrix.
+        float unproject_depth(const in float depth) {
+            return (camera_near * camera_far) /
+                ((camera_far - camera_near) * depth - camera_far);
         }
 
         void main() {
@@ -99,13 +117,15 @@ var SSAOShader = {
             vec3 normal = texture2D(t_normal, vUv).xyz * 2.0 - 1.0;
             normal = normalize(normal);
 
-            float view_z = (camera_near * camera_far) / ((camera_far - camera_near) * depth - camera_far);
+            float view_z = unproject_depth(depth);
 
-            // FIXME: still does not work
-            // vec3 origin = view_ray * (view_z / camera_far);
-            // origin.xy *= (view_z);
             vec3 origin = vec3(0.0);
 
+            // FIXME: still does not work
+            origin = view_ray * (view_z / camera_far);
+
+            // FIXME: this is correct but uses inverseProjectionMatrix. Avoid
+            // if I can.
             vec3 three_origin = getViewPosition(vUv, depth, view_z);
             origin = three_origin;
 
@@ -125,15 +145,15 @@ var SSAOShader = {
                 vec2 sample_point_uv = sample_point_ndc.xy * 0.5 + 0.5;
 
                 float real_depth = texture2D(t_depth, sample_point_uv).r;
-                float linear_real_depth = (camera_near * camera_far) / ((camera_far - camera_near) * real_depth - camera_far);
+                float linear_real_depth = unproject_depth(real_depth);
                 float sample_depth = sample_point.z;
 
                 // Reversed w.r.t to threejs because I have negative view space depths
                 float delta = linear_real_depth - sample_depth;
 
-                float range_check = smoothstep(0.0, 1.0, pow(kernel_radius / abs(linear_real_depth - origin.z), power_factor));
-                // float range_check = abs(linear_real_depth - origin.z) < kernel_radius ? 1.0 : 0.0;
-                // float range_check = 1.0;
+                float base = kernel_radius / abs(linear_real_depth - origin.z);
+                float source = pow(base, power_factor);
+                float range_check = smoothstep(0.0, 1.0, source);
 
                 occlusion += ((delta >= min_distance && delta < max_distance) ? 1.0 : 0.0) * range_check;
                 // occlusion += (delta >= 0.0 ? 1.0 : 0.0) * range_check;

@@ -81,6 +81,8 @@ var SSAOPass = function(scene, camera, width, height) {
     this.ssao_material.uniforms['resolution'].value.set(this.width, this.height);
     this.ssao_material.uniforms['camera_near'].value = this.camera.near;
     this.ssao_material.uniforms['camera_far'].value = this.camera.far;
+    this.ssao_material.uniforms['aspect'].value = this.camera.aspect;
+    this.ssao_material.uniforms['tan_half_fov'].value = Math.tan(THREE.Math.degToRad(0.5 * this.camera.fov));
     this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
 
     // DEBUG: TODO: remove
