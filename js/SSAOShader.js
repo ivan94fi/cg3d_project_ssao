@@ -32,6 +32,7 @@ var SSAOShader = {
         uniform float camera_far;
         uniform float aspect;
         uniform float tan_half_fov;
+        uniform vec2 resolution;
 
         varying vec2 vUv;
         varying vec3 view_ray;
@@ -39,9 +40,18 @@ var SSAOShader = {
         void main() {
             vUv = uv;
             vec4 clip = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-            // FIXME: Viewray is not working
-            // view_ray = vec3(tan_half_fov * aspect * clip.x, tan_half_fov * clip.y, 1.0);
-            view_ray = (camera_far / camera_near) * vec3(clip.x, clip.y, camera_near);
+
+            // DEBUG: works
+            // float t = tan_half_fov * camera_near;
+            // float r = aspect * t;
+            // view_ray = vec3(clip.x * (-r / camera_near), clip.y * (-t / camera_near), 1.0);
+
+            // DEBUG: works
+            // view_ray = vec3(-tan_half_fov * aspect * clip.x, -tan_half_fov * clip.y, 1.0);
+
+            // FIXME: Does not work
+            view_ray = (camera_far / camera_near) * vec3(-clip.x * aspect, -clip.y, camera_near);
+
             gl_Position = clip;
        }`,
 
@@ -73,34 +83,6 @@ var SSAOShader = {
         vec3 green = vec3(0.0, 1.0, 0.0);
         vec3 blue = vec3(0.0, 0.0, 1.0);
 
-        #include <packing>
-
-        vec3 getViewPosition( const in vec2 screenPosition, const in float depth, const in float viewZ ) {
-            float clipW = -viewZ;
-            vec4 clipPosition = vec4( ( vec3( screenPosition, depth ) - 0.5 ) * 2.0, 1.0 );
-            clipPosition *= clipW; // unprojection.
-            return ( cameraInverseProjectionMatrix * clipPosition ).xyz;
-        }
-
-        /* **************  This is not used anymore  ************** */
-        /*
-        float getLinearDepth( const in vec2 screenPosition ) {
-            // From projected coordinates in [0,1] to view coordinates to ortographic coordinates in [n,f]
-
-            // fragCoordZ is (0.5 * z_ndc + 0.5). Let's call them biased ndc coordinates.
-            float fragCoordZ = texture2D( t_depth, screenPosition ).x;
-
-            // perspectiveDepthToViewZ transforms from biased ndc (in [0,1]) to view coordinates.
-            // It is the unprojection => from nonlinear projected coords to linear unprojected coords.
-            float viewZ = perspectiveDepthToViewZ( fragCoordZ, camera_near, camera_far );
-
-            // From viewZ, which is already linear but in [-n,-f], to [0,1].
-            // This is just a linear transform to scale the values in [0,1].
-            return viewZToOrthographicDepth( viewZ, camera_near, camera_far );
-        }
-        */
-        /* ******************************************************** */
-
         // Unproject a value from nonlinear [0, 1] coordinates to linear view
         // coordinates in [-n, -f]. Corresponds to a scale and bias from [0, 1]
         // to [-1, 1], followed by application of inverse projection matrix.
@@ -119,15 +101,7 @@ var SSAOShader = {
 
             float view_z = unproject_depth(depth);
 
-            vec3 origin = vec3(0.0);
-
-            // FIXME: still does not work
-            origin = view_ray * (view_z / camera_far);
-
-            // FIXME: this is correct but uses inverseProjectionMatrix. Avoid
-            // if I can.
-            vec3 three_origin = getViewPosition(vUv, depth, view_z);
-            origin = three_origin;
+            vec3 origin = view_ray * (view_z / camera_far);
 
             vec3 tangent = normalize(noise - normal * dot(noise, normal));
             vec3 bitangent = cross(normal, tangent);
