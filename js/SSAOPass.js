@@ -23,7 +23,7 @@ var SSAOPass = function(scene, camera, width, height) {
     this.noise_texture_height = 4;
     this.noise_texture = null;
 
-    this.output = "complete";
+    this.output = "ssao";
 
     // this.min_distance = 4.0;
     // this.max_distance = 67.0;
@@ -84,10 +84,6 @@ var SSAOPass = function(scene, camera, width, height) {
     this.ssao_material.uniforms['aspect'].value = this.camera.aspect;
     this.ssao_material.uniforms['tan_half_fov'].value = Math.tan(THREE.Math.degToRad(0.5 * this.camera.fov));
     this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
-
-    // DEBUG: TODO: remove
-    this.ssao_material.uniforms['cameraProjectionMatrix'].value.copy(this.camera.projectionMatrix);
-    this.ssao_material.uniforms['cameraInverseProjectionMatrix'].value.getInverse(this.camera.projectionMatrix);
 
     this.blur_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOBlurShader.defines),
@@ -271,46 +267,6 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.noise_texture.wrapT = THREE.RepeatWrapping;
     },
 
-    // DEBUG: TODO: remove
-    generate_random_kernel_rotations: function() {
-
-        var width = 4,
-            height = 4;
-
-        if (SimplexNoise === undefined) {
-            console.error('THREE.SSAOPass: The pass relies on SimplexNoise.');
-        }
-
-        var simplex = new SimplexNoise();
-
-        var size = width * height;
-        var data = new Float32Array(size * 4);
-
-        for (var i = 0; i < size; i++) {
-            var stride = i * 4;
-            var x = (Math.random() * 2) - 1;
-            var y = (Math.random() * 2) - 1;
-            var z = 0;
-            var noise = simplex.noise3d(x, y, z);
-            data[stride] = noise;
-            data[stride + 1] = noise;
-            data[stride + 2] = noise;
-            data[stride + 3] = 1;
-
-        }
-
-        this.noise_texture = new THREE.DataTexture(
-            data,
-            this.noise_texture_width,
-            this.noise_texture_height,
-            THREE.RGBAFormat,
-            THREE.FloatType
-        );
-        this.noise_texture.wrapS = THREE.RepeatWrapping;
-        this.noise_texture.wrapT = THREE.RepeatWrapping;
-
-    },
-
     setSize: function(width, height) {
 
         this.width = width;
@@ -323,8 +279,6 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.ssao_material.uniforms['resolution'].value.set(width, height);
         this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
-        this.ssao_material.uniforms['cameraProjectionMatrix'].value.copy(this.camera.projectionMatrix);
-        this.ssao_material.uniforms['cameraInverseProjectionMatrix'].value.getInverse(this.camera.projectionMatrix);
         this.blur_material.uniforms['resolution'].value.set(width, height);
     },
 

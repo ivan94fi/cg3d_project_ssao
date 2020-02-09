@@ -20,16 +20,12 @@ var SSAOShader = {
         "min_distance": { value: null },
         "max_distance": { value: null },
         "camera_projection_matrix": { value: new Matrix4() },
-        "cameraProjectionMatrix": { value: new Matrix4() },
-        "cameraInverseProjectionMatrix": { value: new Matrix4() },
         "power_factor": { value: null },
         "aspect": { value: null },
         "tan_half_fov": { value: null },
     },
 
     vertexShader: `
-        uniform float camera_near;
-        uniform float camera_far;
         uniform float aspect;
         uniform float tan_half_fov;
         uniform vec2 resolution;
@@ -40,18 +36,7 @@ var SSAOShader = {
         void main() {
             vUv = uv;
             vec4 clip = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
-            // DEBUG: works
-            // float t = tan_half_fov * camera_near;
-            // float r = aspect * t;
-            // view_ray = vec3(clip.x * (-r / camera_near), clip.y * (-t / camera_near), 1.0);
-
-            // DEBUG: works
-            // view_ray = vec3(-tan_half_fov * aspect * clip.x, -tan_half_fov * clip.y, 1.0);
-
-            // FIXME: Does not work
-            view_ray = (camera_far / camera_near) * vec3(-clip.x * aspect, -clip.y, camera_near);
-
+            view_ray = vec3(-tan_half_fov * aspect * clip.x, -tan_half_fov * clip.y, 1.0);
             gl_Position = clip;
        }`,
 
@@ -72,16 +57,8 @@ var SSAOShader = {
         uniform mat4 camera_projection_matrix;
         uniform float power_factor;
 
-        uniform mat4 cameraProjectionMatrix;
-        uniform mat4 cameraInverseProjectionMatrix;
-
         varying vec2 vUv;
         varying vec3 view_ray;
-
-        // DEBUG:
-        vec3 red = vec3(1.0, 0.0, 0.0);
-        vec3 green = vec3(0.0, 1.0, 0.0);
-        vec3 blue = vec3(0.0, 0.0, 1.0);
 
         // Unproject a value from nonlinear [0, 1] coordinates to linear view
         // coordinates in [-n, -f]. Corresponds to a scale and bias from [0, 1]
@@ -101,7 +78,7 @@ var SSAOShader = {
 
             float view_z = unproject_depth(depth);
 
-            vec3 origin = view_ray * (view_z / camera_far);
+            vec3 origin = view_ray * view_z;
 
             vec3 tangent = normalize(noise - normal * dot(noise, normal));
             vec3 bitangent = cross(normal, tangent);
