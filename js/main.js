@@ -53,6 +53,10 @@ function init() {
 
     let container = document.querySelector("#container");
 
+    let gui_controls = {
+        "Enable FXAA": true,
+    }
+
     /* ************************* DEBUG SCENE ******************************** */
     if (debug_geometry) {
         camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 100, 700);
@@ -162,12 +166,7 @@ function init() {
     composer = new EffectComposer(renderer);
     composer.setSize(window.innerWidth, window.innerHeight);
     composer.addPass(ssao_pass);
-    let use_fxaa = false;
-    if (use_fxaa) {
-        composer.addPass(fxaa_pass);
-    } else {
-        console.warn("FXAA disabled.");
-    }
+    composer.addPass(fxaa_pass);
 
     // Setup lights
     if (!debug_geometry) {
@@ -202,6 +201,9 @@ function init() {
     gui.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
     gui.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
     gui.add(ssao_pass, 'power_factor').min(1.0).max(5.0);
+
+    gui.add(gui_controls, "Enable FXAA")
+        .onChange(value => fxaa_pass.enabled = value);
 
     // Handle window resize events
     onWindowResize();
