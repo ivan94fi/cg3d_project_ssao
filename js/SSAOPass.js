@@ -279,6 +279,8 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
 
         this.ssao_material.uniforms['resolution'].value.set(width, height);
         this.ssao_material.uniforms['camera_projection_matrix'].value.copy(this.camera.projectionMatrix);
+        this.ssao_material.uniforms['aspect'].value = this.camera.aspect;
+        this.ssao_material.uniforms['tan_half_fov'].value = Math.tan(THREE.Math.degToRad(0.5 * this.camera.fov));
         this.blur_material.uniforms['resolution'].value.set(width, height);
     },
 
