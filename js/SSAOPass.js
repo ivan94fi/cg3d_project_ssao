@@ -1,8 +1,7 @@
-import * as THREE from "../node_modules/three/build/three.module.js";
-import { Pass } from '../node_modules/three/examples/jsm/postprocessing/Pass.js';
-import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
-import { SimplexNoise } from "../node_modules/three/examples/jsm/math/SimplexNoise.js";
-
+import * as THREE from "three";
+import { Pass } from 'three/examples/jsm/postprocessing/Pass.js';
+import { CopyShader } from "three/examples/jsm/shaders/CopyShader.js";
+import { SimplexNoise } from "three/examples/jsm/math/SimplexNoise.js";
 
 import { custom_random } from "./utils.js";
 import { SSAOShader, SSAOBlurShader } from "./SSAOShader.js";

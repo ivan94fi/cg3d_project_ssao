@@ -1,38 +1,16 @@
-import * as THREE from "../node_modules/three/build/three.module.js";
-import {
-    MTLLoader
-} from '../node_modules/three/examples/jsm/loaders/MTLLoader.js';
-import {
-    OBJLoader2
-} from '../node_modules/three/examples/jsm/loaders/OBJLoader2.js';
-import {
-    MtlObjBridge
-} from "../node_modules/three/examples/jsm/loaders/obj2/bridge/MtlObjBridge.js"
-import {
-    MapControls
-} from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from "three";
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+import { OBJLoader2 } from 'three/examples/jsm/loaders/OBJLoader2.js';
+import { MtlObjBridge } from "three/examples/jsm/loaders/obj2/bridge/MtlObjBridge.js"
+import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
+import { CopyShader } from "three/examples/jsm/shaders/CopyShader.js";
+import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 
-import {
-    EffectComposer
-} from '../node_modules/three/examples/jsm/postprocessing/EffectComposer.js';
-import {
-    RenderPass
-} from '../node_modules/three/examples/jsm/postprocessing/RenderPass.js';
-import {
-    ShaderPass
-} from '../node_modules/three/examples/jsm/postprocessing/ShaderPass.js';
-
-import {
-    FXAAShader
-} from '../node_modules/three/examples/jsm/shaders/FXAAShader.js';
-import {
-    SSAOPass
-} from './SSAOPass.js';
-import { CopyShader } from "../node_modules/three/examples/jsm/shaders/CopyShader.js";
-
-import { GUI } from '../node_modules/three/examples/jsm/libs/dat.gui.module.js';
-
-
+import { SSAOPass } from './SSAOPass.js';
 import { custom_random } from "./utils.js"
 
 let camera, controls, scene, renderer, composer;

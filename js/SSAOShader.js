@@ -1,4 +1,4 @@
-import { Vector2, Matrix4 } from "../node_modules/three/build/three.module.js";
+import { Vector2, Matrix4 } from "three";
 
 var SSAOShader = {
 
