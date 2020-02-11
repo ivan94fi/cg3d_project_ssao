@@ -1,28 +1,28 @@
-import { Vector2, Matrix4 } from "three";
+import { Vector2, Matrix4 } from 'three';
 
 var SSAOShader = {
 
     defines: {
-        "KERNEL_SIZE": 32
+        KERNEL_SIZE: 32,
     },
 
     uniforms: {
-        "opacity": { value: 1.0 },
-        "t_diffuse": { value: null },
-        "t_depth": { value: null },
-        "t_noise": { value: null },
-        "t_normal": { value: null },
-        "sample_kernel": { value: null },
-        "resolution": { value: new Vector2() },
-        "camera_near": { value: null },
-        "camera_far": { value: null },
-        "kernel_radius": { value: null },
-        "min_distance": { value: null },
-        "max_distance": { value: null },
-        "camera_projection_matrix": { value: new Matrix4() },
-        "power_factor": { value: null },
-        "aspect": { value: null },
-        "tan_half_fov": { value: null },
+        opacity: { value: 1.0 },
+        t_diffuse: { value: null },
+        t_depth: { value: null },
+        t_noise: { value: null },
+        t_normal: { value: null },
+        sample_kernel: { value: null },
+        resolution: { value: new Vector2() },
+        camera_near: { value: null },
+        camera_far: { value: null },
+        kernel_radius: { value: null },
+        min_distance: { value: null },
+        max_distance: { value: null },
+        camera_projection_matrix: { value: new Matrix4() },
+        power_factor: { value: null },
+        aspect: { value: null },
+        tan_half_fov: { value: null },
     },
 
     vertexShader: `
@@ -39,7 +39,6 @@ var SSAOShader = {
             view_ray = vec3(-tan_half_fov * aspect * clip.x, -tan_half_fov * clip.y, 1.0);
             gl_Position = clip;
        }`,
-
 
     fragmentShader: `
         uniform float opacity;
@@ -112,15 +111,15 @@ var SSAOShader = {
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
             gl_FragColor = vec4( vec3(occlusion), 1.0 );
-        }`
+        }`,
 
 };
 
 var SSAOBlurShader = {
 
     uniforms: {
-        "t_diffuse": { value: null },
-        "resolution": { value: new Vector2() }
+        t_diffuse: { value: null },
+        resolution: { value: new Vector2() },
     },
 
     vertexShader: `
@@ -131,7 +130,6 @@ var SSAOBlurShader = {
            vUv = uv;
            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
        }`,
-
 
     fragmentShader: `
         uniform sampler2D t_diffuse;
@@ -149,7 +147,7 @@ var SSAOBlurShader = {
                 }
             }
             gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
-        }`
+        }`,
 
 };
 

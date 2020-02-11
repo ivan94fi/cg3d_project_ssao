@@ -16,10 +16,10 @@ function sfc32(a, b, c, d) {
         t = t + d | 0;
         c = c + t | 0;
         return (t >>> 0) / 4294967296;
-    }
+    };
 }
 
-let seed = { a: 12323423, b: 43253344, c: 23423432, d: 270650264 };
-let custom_random = sfc32(seed.a, seed.b, seed.c, seed.d);
+const seed = { a: 12323423, b: 43253344, c: 23423432, d: 270650264 };
+const custom_random = sfc32(seed.a, seed.b, seed.c, seed.d);
 
 export { custom_random };
