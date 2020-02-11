@@ -1,5 +1,6 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: './js/main.js',
@@ -21,12 +22,14 @@ module.exports = {
     plugins: [
         new HtmlWebpackPlugin({
             template: './index.html',
-            favicon: './resources/icon.png',
             inject: true,
             minify: {
                 removeComments: true,
                 collapseWhitespace: false
             }
-        })
+        }),
+        new CopyWebpackPlugin([
+            { from: './resources', to: './resources' }
+        ]),
     ],
 };
