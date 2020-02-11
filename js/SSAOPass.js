@@ -175,7 +175,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         renderer.setRenderTarget(render_target);
 
         // setup pass state
-        renderer.autoClear = false; // ???? TODO: is this necessary? Why?
+        renderer.autoClear = false;
         if ((clear_color !== undefined) && (clear_color !== null)) {
             renderer.setClearColor(clear_color);
             renderer.setClearAlpha(clear_alpha || 0.0);
@@ -200,7 +200,7 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         renderer.setRenderTarget(this.normal_render_target);
 
         // setup pass state
-        renderer.autoClear = false; // ???? TODO: is this necessary? Why?
+        renderer.autoClear = false;
         if ((clear_color !== undefined) && (clear_color !== null)) {
             renderer.setClearColor(clear_color);
             renderer.setClearAlpha(clear_alpha || 0.0);

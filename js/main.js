@@ -11,11 +11,10 @@ import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 import { custom_random } from './utils.js';
 import { SSAOPass } from './SSAOPass.js';
 
-let camera, controls, scene, renderer, composer;
+// Global variables
+let camera, controls, scene, renderer, composer, fxaa_pass, group;
 
-let fxaa_pass;
-let group;
-
+// DEBUG
 const debug_geometry = false;
 const rotate = false;
 
@@ -65,23 +64,12 @@ function init() {
         camera.position.z = -2;
         camera.near = 1;
         camera.far = 100;
-        console.warn('Camera:', '(', camera.near, ',', camera.far, ')');
 
         // Setup Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
 
-        const box_size = 30;
-        const box_geometry = new THREE.BoxBufferGeometry(box_size, box_size, box_size);
-        var box_material = new THREE.MeshPhongMaterial({
-            color: 0x1700aa,
-            shininess: 30,
-            side: THREE.BackSide,
-        });
-        var box = new THREE.Mesh(box_geometry, box_material);
-        scene.add(box);
-
-        // Start async file loading as soon as possible.
+        // Nanosuit model: start async file loading as soon as possible.
         const mtl_loader = new MTLLoader();
         const obj_loader = new OBJLoader2();
 
@@ -116,6 +104,28 @@ function init() {
             .catch(error => {
                 console.error('Error in material loading: ', error);
             });
+
+        // Room
+        const box_size = 30;
+        const box_geometry = new THREE.BoxBufferGeometry(box_size, box_size, box_size);
+        var box_material = new THREE.MeshPhongMaterial({
+            color: 0x1700aa,
+            shininess: 30,
+            side: THREE.BackSide,
+        });
+        var box = new THREE.Mesh(box_geometry, box_material);
+        scene.add(box);
+
+        // Setup lights
+        const ambient_light = new THREE.AmbientLight(0xffffff);
+        scene.add(ambient_light);
+        const directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
+        scene.add(directional_light);
+        const point_light = new THREE.PointLight(0xcccccc, 1, 100);
+        point_light.position.set(5, 5, 20);
+        scene.add(point_light);
+        const light = new THREE.HemisphereLight();
+        scene.add(light);
     }
 
     // Setup renderer
@@ -139,19 +149,6 @@ function init() {
     composer.addPass(ssao_pass);
     composer.addPass(fxaa_pass);
 
-    // Setup lights
-    if (!debug_geometry) {
-        const ambient_light = new THREE.AmbientLight(0xffffff);
-        scene.add(ambient_light);
-        const directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
-        scene.add(directional_light);
-        const point_light = new THREE.PointLight(0xcccccc, 1, 100);
-        point_light.position.set(5, 5, 20);
-        scene.add(point_light);
-        const light = new THREE.HemisphereLight();
-        scene.add(light);
-    }
-
     // Setup controls
     controls = new MapControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
@@ -159,7 +156,6 @@ function init() {
     controls.update();
 
     const gui = new GUI();
-
     gui.add(ssao_pass, 'output', {
         'Complete': 'complete',
         'Beauty': 'beauty',
