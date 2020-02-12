@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Implementation of SSAO for Computer Graphics & 3D exam",
   "private": true,
+  "engines": {
+    "node": "12.13.0",
+    "npm": "6.5.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "webpack --config webpack.prod.js",
