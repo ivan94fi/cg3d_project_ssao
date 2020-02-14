@@ -7,7 +7,7 @@ portfinder.getPort((err, port) => {
         console.error('Unable to find open port. Exiting.');
         return;
     }
-    start_app(port);
+    start_app(process.env.PORT || port);
 });
 
 function start_app(port) {
