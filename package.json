@@ -26,6 +26,7 @@
   "homepage": "https://github.com/ivan94fi/cg3d_project_ssao#readme",
   "dependencies": {
     "express": "^4.17.1",
+    "portfinder": "^1.0.25",
     "three": "^0.112.1"
   },
   "devDependencies": {
