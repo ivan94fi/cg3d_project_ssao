@@ -13,6 +13,8 @@ import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 import { custom_random } from './utils.js';
 import { SSAOPass } from './SSAOPass.js';
 
+import css from '../css/style.css'; // eslint-disable-line
+
 // Global variables
 let camera, controls, scene, renderer, composer, fxaa_pass, group;
 
@@ -74,9 +76,15 @@ function init() {
         scene.background = new THREE.Color(0xbbbbbb);
 
         // Nanosuit model: start async file loading as soon as possible.
-        const mtl_loader = new MTLLoader();
-        const obj_loader = new OBJLoader2();
-        const gltf_loader = new GLTFLoader();
+        const manager = new THREE.LoadingManager();
+        manager.onLoad = function() {
+            const loading_element = document.querySelector('.loading');
+            loading_element.style.display = 'none';
+        };
+
+        const mtl_loader = new MTLLoader(manager);
+        const obj_loader = new OBJLoader2(manager);
+        const gltf_loader = new GLTFLoader(manager);
 
         const models_dir = path.join('..', 'resources', 'models');
         const loaders = [

@@ -6,7 +6,12 @@ module.exports = {
     entry: './js/main.js',
     output: {
         filename: 'main.js',
-        path: path.resolve(__dirname, 'dist')
+        path: path.resolve(__dirname, 'dist'),
+    },
+    module: {
+        rules: [
+            { test: /\.css$/, use: ['style-loader', 'css-loader'] },
+        ],
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -14,11 +19,11 @@ module.exports = {
             inject: true,
             minify: {
                 removeComments: true,
-                collapseWhitespace: false
-            }
+                collapseWhitespace: false,
+            },
         }),
         new CopyWebpackPlugin([
-            { from: './resources', to: './resources' }
+            { from: './resources', to: './resources' },
         ]),
     ],
 };
