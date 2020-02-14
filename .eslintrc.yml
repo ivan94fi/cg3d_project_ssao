@@ -22,3 +22,8 @@ rules:
         ignoreMemberSort: false,
         memberSyntaxSortOrder: ["none", "all", "multiple", "single"],
     }]
+    max-len: [error, {
+        code: 80,
+        ignoreComments: true,
+        ignoreStrings: true,
+    }]

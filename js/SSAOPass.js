@@ -20,7 +20,7 @@ var SSAOPass = function(scene, camera, width, height) {
     this.noise_texture_height = 4;
     this.noise_texture = null;
 
-    this.output = 'ssao';
+    this.output = 'complete';
 
     // this.min_distance = 4.0;
     // this.max_distance = 67.0;
@@ -36,27 +36,36 @@ var SSAOPass = function(scene, camera, width, height) {
     depth_texture.minFilter = THREE.NearestFilter;
     depth_texture.maxFilter = THREE.NearestFilter;
 
-    this.beauty_render_target = new THREE.WebGLRenderTarget(this.width, this.height, {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-        depthTexture: depth_texture,
-        depthBuffer: true,
-    });
+    this.beauty_render_target = new THREE.WebGLRenderTarget(
+        this.width,
+        this.height, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+            depthTexture: depth_texture,
+            depthBuffer: true,
+        },
+    );
 
-    this.ssao_render_target = new THREE.WebGLRenderTarget(this.width, this.height, {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-    });
+    this.ssao_render_target = new THREE.WebGLRenderTarget(
+        this.width,
+        this.height, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+        },
+    );
 
     this.blur_render_target = this.ssao_render_target.clone();
 
-    this.normal_render_target = new THREE.WebGLRenderTarget(this.width, this.height, {
-        minFilter: THREE.LinearFilter,
-        magFilter: THREE.LinearFilter,
-        format: THREE.RGBAFormat,
-    });
+    this.normal_render_target = new THREE.WebGLRenderTarget(
+        this.width,
+        this.height, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+        },
+    );
 
     this.ssao_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOShader.defines),
@@ -69,18 +78,22 @@ var SSAOPass = function(scene, camera, width, height) {
     this.normal_material = new THREE.MeshNormalMaterial();
     this.normal_material.blending = THREE.NoBlending;
 
-    this.ssao_material.uniforms.t_diffuse.value = this.beauty_render_target.texture;
-    this.ssao_material.uniforms.t_depth.value = this.beauty_render_target.depthTexture;
-    this.ssao_material.uniforms.t_noise.value = this.noise_texture;
-    this.ssao_material.uniforms.t_normal.value = this.normal_render_target.texture;
-    this.ssao_material.uniforms.sample_kernel.value = this.sample_kernel;
-    this.ssao_material.uniforms.kernel_radius.value = this.kernel_radius;
-    this.ssao_material.uniforms.resolution.value.set(this.width, this.height);
-    this.ssao_material.uniforms.camera_near.value = this.camera.near;
-    this.ssao_material.uniforms.camera_far.value = this.camera.far;
-    this.ssao_material.uniforms.aspect.value = this.camera.aspect;
-    this.ssao_material.uniforms.tan_half_fov.value = Math.tan(THREE.Math.degToRad(0.5 * this.camera.fov));
-    this.ssao_material.uniforms.camera_projection_matrix.value.copy(this.camera.projectionMatrix);
+    const ssao_uniforms = this.ssao_material.uniforms;
+    ssao_uniforms.t_diffuse.value = this.beauty_render_target.texture;
+    ssao_uniforms.t_depth.value = this.beauty_render_target.depthTexture;
+    ssao_uniforms.t_noise.value = this.noise_texture;
+    ssao_uniforms.t_normal.value = this.normal_render_target.texture;
+    ssao_uniforms.sample_kernel.value = this.sample_kernel;
+    ssao_uniforms.kernel_radius.value = this.kernel_radius;
+    ssao_uniforms.resolution.value.set(this.width, this.height);
+    ssao_uniforms.camera_near.value = this.camera.near;
+    ssao_uniforms.camera_far.value = this.camera.far;
+    ssao_uniforms.aspect.value = this.camera.aspect;
+    ssao_uniforms.tan_half_fov.value = Math.tan(
+        THREE.Math.degToRad(0.5 * this.camera.fov),
+    );
+    ssao_uniforms.camera_projection_matrix
+        .value.copy(this.camera.projectionMatrix);
 
     this.blur_material = new THREE.ShaderMaterial({
         defines: Object.assign({}, SSAOBlurShader.defines),
@@ -88,7 +101,8 @@ var SSAOPass = function(scene, camera, width, height) {
         vertexShader: SSAOBlurShader.vertexShader,
         fragmentShader: SSAOBlurShader.fragmentShader,
     });
-    this.blur_material.uniforms.t_diffuse.value = this.ssao_render_target.texture;
+    this.blur_material.uniforms.t_diffuse.value = this
+        .ssao_render_target.texture;
     this.blur_material.uniforms.resolution.value.set(this.width, this.height);
 
     this.copy_material = new THREE.ShaderMaterial({
@@ -128,6 +142,11 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.fullscreen_quad.dispose();
     },
 
+    prepare_output: function(target, blending) {
+        this.copy_material.uniforms.tDiffuse.value = target.texture;
+        this.copy_material.blending = blending;
+    },
+
     render: function(renderer, write_buffer) {
         // Render beauty and depth
         renderer.setRenderTarget(this.beauty_render_target);
@@ -140,33 +159,37 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.ssao_material.uniforms.min_distance.value = this.min_distance;
         this.ssao_material.uniforms.max_distance.value = this.max_distance;
         this.ssao_material.uniforms.power_factor.value = this.power_factor;
-        this.render_on_quad(renderer, this.ssao_material, this.ssao_render_target);
+        this.render_on_quad(
+            renderer, this.ssao_material, this.ssao_render_target);
 
-        this.render_on_quad(renderer, this.blur_material, this.blur_render_target);
+        this.render_on_quad(
+            renderer, this.blur_material, this.blur_render_target);
 
         if (this.output === 'beauty') {
-            this.copy_material.uniforms.tDiffuse.value = this.beauty_render_target.texture;
-            this.copy_material.blending = THREE.NoBlending;
-            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+            this.prepare_output(this.beauty_render_target, THREE.NoBlending);
         } else if (this.output === 'ssao') {
-            this.copy_material.uniforms.tDiffuse.value = this.ssao_render_target.texture;
-            this.copy_material.blending = THREE.NoBlending;
-            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+            this.prepare_output(this.ssao_render_target, THREE.NoBlending);
         } else if (this.output === 'blur') {
-            this.copy_material.uniforms.tDiffuse.value = this.blur_render_target.texture;
-            this.copy_material.blending = THREE.NoBlending;
-            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+            this.prepare_output(this.blur_render_target, THREE.NoBlending);
         } else if (this.output === 'complete') {
-            this.copy_material.uniforms.tDiffuse.value = this.beauty_render_target.texture;
-            this.copy_material.blending = THREE.NoBlending;
-            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
-            this.copy_material.uniforms.tDiffuse.value = this.blur_render_target.texture;
-            this.copy_material.blending = THREE.CustomBlending;
-            this.render_on_quad(renderer, this.copy_material, this.renderToScreen ? null : write_buffer);
+            this.prepare_output(this.beauty_render_target, THREE.NoBlending);
+            this.render_on_quad(
+                renderer,
+                this.copy_material,
+                this.renderToScreen ? null : write_buffer,
+            );
+            this.prepare_output(this.blur_render_target, THREE.CustomBlending);
         }
+        this.render_on_quad(
+            renderer,
+            this.copy_material,
+            this.renderToScreen ? null : write_buffer,
+        );
     },
 
-    render_on_quad: function(renderer, material, render_target, clear_color, clear_alpha) {
+    render_on_quad: function(
+        renderer, material, render_target, clear_color, clear_alpha,
+    ) {
         // save original state
         this.original_clear_color.copy(renderer.getClearColor());
         const original_clear_alpha = renderer.getClearAlpha();
@@ -235,7 +258,8 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
     },
 
     generate_noise_texture: function() {
-        const noise_texture_size = this.noise_texture_width * this.noise_texture_height;
+        const noise_texture_size =
+            this.noise_texture_width * this.noise_texture_height;
         const stride = 4;
         const data = new Float32Array(noise_texture_size * stride);
         for (let i = 0; i < noise_texture_size * stride; i += stride) {
@@ -270,9 +294,11 @@ SSAOPass.prototype = Object.assign(Object.create(Pass.prototype), {
         this.blur_render_target.setSize(width, height);
 
         this.ssao_material.uniforms.resolution.value.set(width, height);
-        this.ssao_material.uniforms.camera_projection_matrix.value.copy(this.camera.projectionMatrix);
+        this.ssao_material.uniforms.camera_projection_matrix
+            .value.copy(this.camera.projectionMatrix);
         this.ssao_material.uniforms.aspect.value = this.camera.aspect;
-        this.ssao_material.uniforms.tan_half_fov.value = Math.tan(THREE.Math.degToRad(0.5 * this.camera.fov));
+        this.ssao_material.uniforms.tan_half_fov.value = Math.tan(
+            THREE.Math.degToRad(0.5 * this.camera.fov));
         this.blur_material.uniforms.resolution.value.set(width, height);
     },
 

@@ -16,13 +16,8 @@ import { SSAOPass } from './SSAOPass.js';
 // Global variables
 let camera, controls, scene, renderer, composer, fxaa_pass, group;
 
-let debug_geometry;
 const storage_value = window.localStorage.getItem('debug_geometry');
-if (storage_value) {
-    debug_geometry = (storage_value === 'true');
-} else {
-    debug_geometry = false;
-}
+const debug_geometry = storage_value ? (storage_value === 'true') : false;
 
 init();
 animate();
@@ -39,7 +34,12 @@ function init() {
 
     /* ************************* DEBUG SCENE ******************************** */
     if (debug_geometry) {
-        camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 100, 700);
+        camera = new THREE.PerspectiveCamera(
+            65,
+            window.innerWidth / window.innerHeight,
+            100,
+            700,
+        );
         camera.position.z = 500;
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xaaaaaa);
@@ -63,44 +63,15 @@ function init() {
             group.add(mesh);
         }
     } else {
-        /* ************************* NORMAL SCENE ******************************* */
+        /* ************************* NORMAL SCENE *************************** */
         // Setup Camera
         camera = new THREE.PerspectiveCamera(
             75, window.innerWidth / window.innerHeight, 1, 100,
         );
 
-        var r = path.join('..', 'resources', 'skyboxes', 'Sea');
-        var urls = [
-            path.join(r, 'right.jpg'), path.join(r, 'left.jpg'),
-            path.join(r, 'top.jpg'), path.join(r, 'bottom.jpg'),
-            path.join(r, 'front.jpg'), path.join(r, 'back.jpg'),
-        ];
-
-        // var r = path.join('..', 'resources', 'skyboxes', 'MilkyWay');
-        // var urls = [path.join(r, 'dark-s_px.jpg'), path.join(r, 'dark-s_nx.jpg'),
-        //     path.join(r, 'dark-s_py.jpg'), path.join(r, 'dark-s_ny.jpg'),
-        //     path.join(r, 'dark-s_pz.jpg'), path.join(r, 'dark-s_nz.jpg'),
-        // ];
-        const texture_cube = new THREE.CubeTextureLoader().load(urls);
-        texture_cube.format = THREE.RGBFormat;
-        texture_cube.mapping = THREE.CubeReflectionMapping;
-        texture_cube.encoding = THREE.sRGBEncoding;
-
-        var cube_shader = THREE.ShaderLib.cube;
-        var cube_material = new THREE.ShaderMaterial({
-            fragmentShader: cube_shader.fragmentShader,
-            vertexShader: cube_shader.vertexShader,
-            uniforms: cube_shader.uniforms,
-            depthWrite: false,
-            side: THREE.BackSide,
-        });
-        cube_material.envMap = texture_cube;
-        const cube_mesh = new THREE.Mesh(new THREE.BoxBufferGeometry(1000, 1000, 1000), cube_material);
-
         // Setup Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
-        scene.add(cube_mesh);
 
         // Nanosuit model: start async file loading as soon as possible.
         const mtl_loader = new MTLLoader();
@@ -169,6 +140,32 @@ function init() {
                 console.error('Error in object loading: ', error);
             });
 
+        // Load skybox (envmap)
+        var r = path.join('..', 'resources', 'skyboxes', 'Sea');
+        var urls = [
+            path.join(r, 'right.jpg'), path.join(r, 'left.jpg'),
+            path.join(r, 'top.jpg'), path.join(r, 'bottom.jpg'),
+            path.join(r, 'front.jpg'), path.join(r, 'back.jpg'),
+        ];
+        const texture_cube = new THREE.CubeTextureLoader().load(urls);
+        texture_cube.format = THREE.RGBFormat;
+        texture_cube.mapping = THREE.CubeReflectionMapping;
+
+        var cube_shader = THREE.ShaderLib.cube;
+        var cube_material = new THREE.ShaderMaterial({
+            fragmentShader: cube_shader.fragmentShader,
+            vertexShader: cube_shader.vertexShader,
+            uniforms: cube_shader.uniforms,
+            depthWrite: false,
+            side: THREE.BackSide,
+        });
+        cube_material.envMap = texture_cube;
+        const cube_mesh = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(1000, 1000, 1000),
+            cube_material,
+        );
+        scene.add(cube_mesh);
+
         // Setup lights
         const ambient_light = new THREE.AmbientLight(0xffffff, 0.2);
         scene.add(ambient_light);
@@ -201,7 +198,12 @@ function init() {
 
     // Setup passes for postprocessing and composer
     fxaa_pass = new ShaderPass(FXAAShader);
-    const ssao_pass = new SSAOPass(scene, camera, window.innerWidth, window.innerHeight);
+    const ssao_pass = new SSAOPass(
+        scene,
+        camera,
+        window.innerWidth,
+        window.innerHeight,
+    );
 
     composer = new EffectComposer(renderer);
     composer.setSize(window.innerWidth, window.innerHeight);
@@ -214,6 +216,7 @@ function init() {
     controls.target.set(0, -10, -50);
     controls.update();
 
+    // Setup User Interface
     const gui = new GUI();
 
     const output_folder = gui.addFolder('Output');
@@ -253,11 +256,11 @@ function init() {
         });
 
     // Handle window resize events
-    onWindowResize();
-    window.addEventListener('resize', onWindowResize, false);
+    on_window_resize();
+    window.addEventListener('resize', on_window_resize, false);
 }
 
-function onWindowResize(event) {
+function on_window_resize(event) {
     const width = window.innerWidth;
     const height = window.innerHeight;
     camera.aspect = width / height;

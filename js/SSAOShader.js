@@ -25,6 +25,7 @@ var SSAOShader = {
         tan_half_fov: { value: null },
     },
 
+    /* eslint-disable */
     vertexShader: `
         uniform float aspect;
         uniform float tan_half_fov;
@@ -112,7 +113,7 @@ var SSAOShader = {
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
             gl_FragColor = vec4( vec3(occlusion), 1.0 );
         }`,
-
+        /* eslint-enable */
 };
 
 var SSAOBlurShader = {
@@ -122,6 +123,7 @@ var SSAOBlurShader = {
         resolution: { value: new Vector2() },
     },
 
+    /* eslint-disable */
     vertexShader: `
         varying vec2 vUv;
         varying vec3 view_ray;
@@ -148,7 +150,7 @@ var SSAOBlurShader = {
             }
             gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
         }`,
-
+    /* eslint-enable */
 };
 
 export { SSAOShader, SSAOBlurShader };
