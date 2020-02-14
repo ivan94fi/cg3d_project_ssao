@@ -241,11 +241,13 @@ function init() {
     fxaa_folder.add(gui_controls, 'Enable FXAA')
         .onChange(value => { fxaa_pass.enabled = value; });
 
-    const lights_folder = gui.addFolder('Lights');
-    for (const p in lights_dict) {
-        gui_controls.lights_visibility[p] = lights_dict[p].visible;
-        lights_folder.add(gui_controls.lights_visibility, p)
-            .onChange(value => { lights_dict[p].visible = value; });
+    if (!debug_geometry) {
+        const lights_folder = gui.addFolder('Lights');
+        for (const p in lights_dict) {
+            gui_controls.lights_visibility[p] = lights_dict[p].visible;
+            lights_folder.add(gui_controls.lights_visibility, p)
+                .onChange(value => { lights_dict[p].visible = value; });
+        }
     }
 
     const debug_folder = gui.addFolder('Debug');
