@@ -16,9 +16,13 @@ import { SSAOPass } from './SSAOPass.js';
 // Global variables
 let camera, controls, scene, renderer, composer, fxaa_pass, group;
 
-// DEBUG
-const debug_geometry = false;
-const rotate = false;
+let debug_geometry;
+const storage_value = window.localStorage.getItem('debug_geometry');
+if (storage_value) {
+    debug_geometry = (storage_value === 'true');
+} else {
+    debug_geometry = false;
+}
 
 init();
 animate();
@@ -28,7 +32,10 @@ function init() {
 
     const gui_controls = {
         'Enable FXAA': true,
+        'lights_visibility': {},
+        'Debug geometry': debug_geometry,
     };
+    const lights_dict = {};
 
     /* ************************* DEBUG SCENE ******************************** */
     if (debug_geometry) {
@@ -170,9 +177,14 @@ function init() {
         const point_light = new THREE.PointLight(0xcccccc, 1, 100);
         point_light.position.set(5, 5, 20);
         scene.add(point_light);
-        const light = new THREE.HemisphereLight();
-        light.intensity = 0.2;
-        scene.add(light);
+        const hemisphere_light = new THREE.HemisphereLight();
+        hemisphere_light.intensity = 0.2;
+        scene.add(hemisphere_light);
+
+        lights_dict.ambient = ambient_light;
+        lights_dict.directional = directional_light;
+        lights_dict.point = point_light;
+        lights_dict.hemisphere = hemisphere_light;
     }
 
     // Setup renderer
@@ -203,21 +215,42 @@ function init() {
     controls.update();
 
     const gui = new GUI();
-    gui.add(ssao_pass, 'output', {
+
+    const output_folder = gui.addFolder('Output');
+    output_folder.add(ssao_pass, 'output', {
         'Complete': 'complete',
         'Beauty': 'beauty',
         'SSAO': 'ssao',
         'SSAO + Blur': 'blur',
     }).onChange(value => { ssao_pass.output = value; });
-    gui.add(ssao_pass, 'kernel_radius').min(0).max(32);
-    // gui.add(ssao_pass, 'min_distance').min(0.001).max(0.02);
-    // gui.add(ssao_pass, 'max_distance').min(0.01).max(0.3);
-    gui.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
-    gui.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
-    gui.add(ssao_pass, 'power_factor').min(1.0).max(5.0);
+    output_folder.open();
 
-    gui.add(gui_controls, 'Enable FXAA')
+    const ssao_param_folder = gui.addFolder('SSAO Parameters');
+    ssao_param_folder.add(ssao_pass, 'kernel_radius').min(0).max(32);
+    // ssao_param_folder.add(ssao_pass, 'min_distance').min(0.001).max(0.02);
+    // ssao_param_folder.add(ssao_pass, 'max_distance').min(0.01).max(0.3);
+    ssao_param_folder.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
+    ssao_param_folder.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
+    ssao_param_folder.add(ssao_pass, 'power_factor').min(1.0).max(5.0);
+    ssao_param_folder.open();
+
+    const fxaa_folder = gui.addFolder('FXAA');
+    fxaa_folder.add(gui_controls, 'Enable FXAA')
         .onChange(value => { fxaa_pass.enabled = value; });
+
+    const lights_folder = gui.addFolder('Lights');
+    for (const p in lights_dict) {
+        gui_controls.lights_visibility[p] = lights_dict[p].visible;
+        lights_folder.add(gui_controls.lights_visibility, p)
+            .onChange(value => { lights_dict[p].visible = value; });
+    }
+
+    const debug_folder = gui.addFolder('Debug');
+    debug_folder.add(gui_controls, 'Debug geometry')
+        .onChange(value => {
+            window.localStorage.setItem('debug_geometry', value);
+            location.reload();
+        });
 
     // Handle window resize events
     onWindowResize();
@@ -248,12 +281,5 @@ function animate() {
 }
 
 function render() {
-    if (debug_geometry) {
-        if (rotate) {
-            var timer = performance.now();
-            group.rotation.x = timer * 0.0002;
-            group.rotation.y = timer * 0.0001;
-        }
-    }
     composer.render();
 }
