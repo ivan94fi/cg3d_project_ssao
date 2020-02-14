@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import * as path from 'path';
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
 import { OBJLoader2 } from 'three/examples/jsm/loaders/OBJLoader2.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MtlObjBridge } from 'three/examples/jsm/loaders/obj2/bridge/MtlObjBridge.js';
 import { MapControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
@@ -57,40 +59,73 @@ function init() {
         /* ************************* NORMAL SCENE ******************************* */
         // Setup Camera
         camera = new THREE.PerspectiveCamera(
-            75, window.innerWidth / window.innerHeight, 0.1, 1000,
+            75, window.innerWidth / window.innerHeight, 1, 100,
         );
-        camera.position.x = 6;
-        camera.position.y = -2;
-        camera.position.z = -2;
-        camera.near = 1;
-        camera.far = 100;
+
+        var r = path.join('..', 'resources', 'skyboxes', 'Sea');
+        var urls = [
+            path.join(r, 'right.jpg'), path.join(r, 'left.jpg'),
+            path.join(r, 'top.jpg'), path.join(r, 'bottom.jpg'),
+            path.join(r, 'front.jpg'), path.join(r, 'back.jpg'),
+        ];
+
+        // var r = path.join('..', 'resources', 'skyboxes', 'MilkyWay');
+        // var urls = [path.join(r, 'dark-s_px.jpg'), path.join(r, 'dark-s_nx.jpg'),
+        //     path.join(r, 'dark-s_py.jpg'), path.join(r, 'dark-s_ny.jpg'),
+        //     path.join(r, 'dark-s_pz.jpg'), path.join(r, 'dark-s_nz.jpg'),
+        // ];
+        const texture_cube = new THREE.CubeTextureLoader().load(urls);
+        texture_cube.format = THREE.RGBFormat;
+        texture_cube.mapping = THREE.CubeReflectionMapping;
+        texture_cube.encoding = THREE.sRGBEncoding;
+
+        var cube_shader = THREE.ShaderLib.cube;
+        var cube_material = new THREE.ShaderMaterial({
+            fragmentShader: cube_shader.fragmentShader,
+            vertexShader: cube_shader.vertexShader,
+            uniforms: cube_shader.uniforms,
+            depthWrite: false,
+            side: THREE.BackSide,
+        });
+        cube_material.envMap = texture_cube;
+        const cube_mesh = new THREE.Mesh(new THREE.BoxBufferGeometry(1000, 1000, 1000), cube_material);
 
         // Setup Scene
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
+        scene.add(cube_mesh);
 
         // Nanosuit model: start async file loading as soon as possible.
         const mtl_loader = new MTLLoader();
         const obj_loader = new OBJLoader2();
+        const gltf_loader = new GLTFLoader();
 
-        const models_dir = '../resources/models/nanosuit';
-        const loaders = [mtl_loader, obj_loader];
-        const files = ['nanosuit.mtl', 'nanosuit.obj'];
+        const models_dir = path.join('..', 'resources', 'models');
+        const loaders = [
+            mtl_loader,
+            obj_loader,
+            gltf_loader,
+        ];
+        const files = [
+            path.join('nanosuit', 'nanosuit.mtl'),
+            path.join('nanosuit', 'nanosuit.obj'),
+            path.join('spaceship', 'spaceship.gltf'),
+        ];
 
         const promises = {};
         files.forEach((file, i) => {
             // Start loading and save promises
-            promises[file] = new Promise((resolve, reject) => {
-                loaders[i].load(models_dir + '/' + file, resolve);
+            promises[path.basename(file)] = new Promise((resolve, reject) => {
+                loaders[i].load(path.join(models_dir, file), resolve);
             });
         });
 
         promises['nanosuit.obj']
             .then(obj => {
                 scene.add(obj);
-                obj.translateY(-13.0);
-                obj.translateZ(10);
-                obj.rotateX(-90 * Math.PI / 180);
+                obj.translateY(-9.0);
+                obj.translateZ(-20);
+                // obj.rotateX(-90 * Math.PI / 180);
             })
             .catch(error => {
                 console.error('Error in object loading: ', error);
@@ -105,26 +140,38 @@ function init() {
                 console.error('Error in material loading: ', error);
             });
 
-        // Room
-        const box_size = 30;
-        const box_geometry = new THREE.BoxBufferGeometry(box_size, box_size, box_size);
-        var box_material = new THREE.MeshPhongMaterial({
-            color: 0x1700aa,
-            shininess: 30,
-            side: THREE.BackSide,
-        });
-        var box = new THREE.Mesh(box_geometry, box_material);
-        scene.add(box);
+        promises['spaceship.gltf']
+            .then(gltf => {
+                gltf.scene.translateX(-60);
+                gltf.scene.scale.set(3, 3, 3);
+                scene.add(gltf.scene);
+                gltf.scene.traverse(child => {
+                    if (child.material) {
+                        const material = child.material;
+                        material.envMap = texture_cube;
+                        if (material.name === 'Floor_and_vent') {
+                            material.color.multiplyScalar(1.2);
+                        }
+                        if (material.name === 'Floor_vent') {
+                            material.color.multiplyScalar(2);
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Error in object loading: ', error);
+            });
 
         // Setup lights
-        const ambient_light = new THREE.AmbientLight(0xffffff);
+        const ambient_light = new THREE.AmbientLight(0xffffff, 0.2);
         scene.add(ambient_light);
-        const directional_light = new THREE.DirectionalLight(0xffffff, 0.6);
+        const directional_light = new THREE.DirectionalLight(0xffffff, 1);
         scene.add(directional_light);
         const point_light = new THREE.PointLight(0xcccccc, 1, 100);
         point_light.position.set(5, 5, 20);
         scene.add(point_light);
         const light = new THREE.HemisphereLight();
+        light.intensity = 0.2;
         scene.add(light);
     }
 
@@ -152,7 +199,7 @@ function init() {
     // Setup controls
     controls = new MapControls(camera, renderer.domElement);
     controls.screenSpacePanning = true;
-    controls.target.set(0, -15, 0);
+    controls.target.set(0, -10, -50);
     controls.update();
 
     const gui = new GUI();
