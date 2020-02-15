@@ -13,7 +13,7 @@ import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 import { custom_random } from './utils.js';
 import { SSAOPass } from './SSAOPass.js';
 
-import css from '../css/style.css'; // eslint-disable-line
+import '../css/style.css';
 
 // Global variables
 let camera, controls, scene, renderer, composer, fxaa_pass, group;
@@ -49,12 +49,12 @@ function init() {
         scene.add(new THREE.HemisphereLight());
         group = new THREE.Group();
         scene.add(group);
-        var geometry = new THREE.BoxBufferGeometry(10, 10, 10);
-        for (var i = 0; i < 100; i++) {
-            var material = new THREE.MeshLambertMaterial({
+        const geometry = new THREE.BoxBufferGeometry(10, 10, 10);
+        for (let i = 0; i < 100; i++) {
+            const material = new THREE.MeshLambertMaterial({
                 color: custom_random() * 0xffffff,
             });
-            var mesh = new THREE.Mesh(geometry, material);
+            const mesh = new THREE.Mesh(geometry, material);
             mesh.position.x = custom_random() * 400 - 200;
             mesh.position.y = custom_random() * 400 - 200;
             mesh.position.z = custom_random() * 400 - 200;
@@ -75,7 +75,7 @@ function init() {
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xbbbbbb);
 
-        // Nanosuit model: start async file loading as soon as possible.
+        // Models: start async file loading as soon as possible.
         const manager = new THREE.LoadingManager();
         manager.onLoad = function() {
             const loading_element = document.querySelector('.loading');
@@ -149,18 +149,20 @@ function init() {
             });
 
         // Load skybox (envmap)
-        var r = path.join('..', 'resources', 'skyboxes', 'Sea');
-        var urls = [
-            path.join(r, 'right.jpg'), path.join(r, 'left.jpg'),
-            path.join(r, 'top.jpg'), path.join(r, 'bottom.jpg'),
-            path.join(r, 'front.jpg'), path.join(r, 'back.jpg'),
+        const skybox_path = path.join(
+            '..', 'resources', 'skyboxes', 'Sea', path.sep,
+        );
+        const urls = ['right.jpg', 'left.jpg', 'top.jpg',
+            'bottom.jpg', 'front.jpg', 'back.jpg',
         ];
-        const texture_cube = new THREE.CubeTextureLoader().load(urls);
+        const texture_cube = new THREE.CubeTextureLoader(manager)
+            .setPath(skybox_path)
+            .load(urls);
         texture_cube.format = THREE.RGBFormat;
         texture_cube.mapping = THREE.CubeReflectionMapping;
 
-        var cube_shader = THREE.ShaderLib.cube;
-        var cube_material = new THREE.ShaderMaterial({
+        const cube_shader = THREE.ShaderLib.cube;
+        const cube_material = new THREE.ShaderMaterial({
             fragmentShader: cube_shader.fragmentShader,
             vertexShader: cube_shader.vertexShader,
             uniforms: cube_shader.uniforms,
@@ -279,12 +281,9 @@ function on_window_resize(event) {
     renderer.setSize(width, height);
     composer.setSize(width, height);
 
-    // TODO: maybe this is not necessary anymore? Check
     const pixel_ratio = renderer.getPixelRatio();
-    const uniforms = fxaa_pass.material.uniforms;
-
-    uniforms.resolution.value.x = 1 / (width * pixel_ratio);
-    uniforms.resolution.value.y = 1 / (height * pixel_ratio);
+    fxaa_pass.material.uniforms.resolution.value.x = 1 / (width * pixel_ratio);
+    fxaa_pass.material.uniforms.resolution.value.y = 1 / (height * pixel_ratio);
 }
 
 function animate() {
