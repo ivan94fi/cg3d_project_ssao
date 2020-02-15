@@ -239,11 +239,10 @@ function init() {
     output_folder.open();
 
     const ssao_param_folder = gui.addFolder('SSAO Parameters');
-    ssao_param_folder.add(ssao_pass, 'kernel_radius').min(0).max(32);
-    // ssao_param_folder.add(ssao_pass, 'min_distance').min(0.001).max(0.02);
-    // ssao_param_folder.add(ssao_pass, 'max_distance').min(0.01).max(0.3);
-    ssao_param_folder.add(ssao_pass, 'min_distance').min(1.0).max(10.0);
-    ssao_param_folder.add(ssao_pass, 'max_distance').min(5.0).max(100.0);
+    ssao_param_folder.add(ssao_pass, 'kernel_radius').min(4).max(32);
+    ssao_param_folder.add(ssao_pass, 'min_distance').min(0.0).max(15.0);
+    ssao_param_folder.add(ssao_pass, 'max_distance').min(0.0).max(100.0);
+    ssao_param_folder.add(ssao_pass, 'range_check_factor').min(1.0).max(5.0);
     ssao_param_folder.add(ssao_pass, 'power_factor').min(1.0).max(5.0);
     ssao_param_folder.open();
 

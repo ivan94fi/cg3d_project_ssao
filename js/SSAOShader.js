@@ -23,6 +23,7 @@ var SSAOShader = {
         power_factor: { value: null },
         aspect: { value: null },
         tan_half_fov: { value: null },
+        range_check_factor: { value: null },
     },
 
     /* eslint-disable */
@@ -56,6 +57,7 @@ var SSAOShader = {
         uniform float max_distance;
         uniform mat4 camera_projection_matrix;
         uniform float power_factor;
+        uniform float range_check_factor;
 
         varying vec2 vUv;
         varying vec3 view_ray;
@@ -103,7 +105,7 @@ var SSAOShader = {
                 float delta = linear_real_depth - sample_depth;
 
                 float base = kernel_radius / abs(linear_real_depth - origin.z);
-                float source = pow(base, power_factor);
+                float source = pow(base, range_check_factor);
                 float range_check = smoothstep(0.0, 1.0, source);
 
                 occlusion += ((delta >= min_distance && delta < max_distance) ? 1.0 : 0.0) * range_check;
@@ -111,12 +113,18 @@ var SSAOShader = {
             }
 
             occlusion = 1.0 - (occlusion / float(KERNEL_SIZE));
-            gl_FragColor = vec4( vec3(occlusion), 1.0 );
+            gl_FragColor = vec4( vec3(pow(occlusion, power_factor)), 1.0 );
         }`,
         /* eslint-enable */
 };
 
 var SSAOBlurShader = {
+
+    defines: {
+        BLUR_RADIUS: '2',
+        BLUR_SIZE: '(float(BLUR_RADIUS) * 2.0 + 1.0)',
+        NORM_FACTOR: 'BLUR_SIZE * BLUR_SIZE',
+    },
 
     uniforms: {
         t_diffuse: { value: null },
@@ -142,13 +150,13 @@ var SSAOBlurShader = {
         void main() {
             vec2 texel_size = (1.0 / resolution);
             float result = 0.0;
-            for ( int i = - 2; i <= 2; i ++ ) {
-                for ( int j = - 2; j <= 2; j ++ ) {
+            for ( int i = - BLUR_RADIUS; i <= BLUR_RADIUS; i ++ ) {
+                for ( int j = - BLUR_RADIUS; j <= BLUR_RADIUS; j ++ ) {
                     vec2 offset = ( vec2( float( i ), float( j ) ) ) * texel_size;
                     result += texture2D( t_diffuse, vUv + offset ).r;
                 }
             }
-            gl_FragColor = vec4( vec3( result / ( 5.0 * 5.0 ) ), 1.0 );
+            gl_FragColor = vec4( vec3( result / ( NORM_FACTOR ) ), 1.0 );
         }`,
     /* eslint-enable */
 };
