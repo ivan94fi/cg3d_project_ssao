@@ -19,7 +19,12 @@ function sfc32(a, b, c, d) {
     };
 }
 
+function close_loading_icon() {
+    const loading_element = document.querySelector('.loading');
+    loading_element.style.display = 'none';
+}
+
 const seed = { a: 12323423, b: 43253344, c: 23423432, d: 270650264 };
 const custom_random = sfc32(seed.a, seed.b, seed.c, seed.d);
 
-export { custom_random };
+export { custom_random, close_loading_icon };

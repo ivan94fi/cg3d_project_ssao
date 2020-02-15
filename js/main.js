@@ -10,7 +10,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { GUI } from 'three/examples/jsm/libs/dat.gui.module.js';
 
-import { custom_random } from './utils.js';
+import { custom_random, close_loading_icon } from './utils.js';
 import { SSAOPass } from './SSAOPass.js';
 
 import '../css/style.css';
@@ -64,6 +64,7 @@ function init() {
             mesh.scale.setScalar(custom_random() * 10 + 2);
             group.add(mesh);
         }
+        close_loading_icon();
     } else {
         /* ************************* NORMAL SCENE *************************** */
         // Setup Camera
@@ -77,10 +78,7 @@ function init() {
 
         // Models: start async file loading as soon as possible.
         const manager = new THREE.LoadingManager();
-        manager.onLoad = function() {
-            const loading_element = document.querySelector('.loading');
-            loading_element.style.display = 'none';
-        };
+        manager.onLoad = close_loading_icon;
 
         const mtl_loader = new MTLLoader(manager);
         const obj_loader = new OBJLoader2(manager);
