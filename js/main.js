@@ -212,6 +212,9 @@ function init() {
         window.innerWidth,
         window.innerHeight,
     );
+    if (debug_geometry) {
+        ssao_pass.kernel_radius = 16;
+    }
 
     composer = new EffectComposer(renderer);
     composer.setSize(window.innerWidth, window.innerHeight);
@@ -237,7 +240,7 @@ function init() {
     output_folder.open();
 
     const ssao_param_folder = gui.addFolder('SSAO Parameters');
-    ssao_param_folder.add(ssao_pass, 'kernel_radius').min(4).max(32);
+    ssao_param_folder.add(ssao_pass, 'kernel_radius').min(1).max(32);
     ssao_param_folder.add(ssao_pass, 'min_distance').min(0.0).max(15.0);
     ssao_param_folder.add(ssao_pass, 'max_distance').min(0.0).max(100.0);
     ssao_param_folder.add(ssao_pass, 'range_check_factor').min(1.0).max(5.0);

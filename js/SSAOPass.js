@@ -14,7 +14,7 @@ var SSAOPass = function(scene, camera, width, height) {
     this.height = height;
 
     this.kernel_size = 32;
-    this.kernel_radius = 16;
+    this.kernel_radius = 4;
     this.sample_kernel = [];
     this.noise_texture_width = 4;
     this.noise_texture_height = 4;
