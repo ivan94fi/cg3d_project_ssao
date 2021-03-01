@@ -27,7 +27,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "portfinder": "^1.0.25",
-    "three": "^0.112.1"
+    "three": "^0.125.0"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^5.1.1",
